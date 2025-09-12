@@ -20,7 +20,7 @@ execute:
 
 ## Overview
 
-Ordinal model for 0-3 votes scaled to 6 expected votes per match then simulated 2000 times
+Ordinal model for 0-3 votes scaled to 6 expected votes per match then simulated 2000 times.
 
 Model features:
 
@@ -35,6 +35,7 @@ Model features:
   - Clearances
   - ratingPoints
   - dreamTeamPoints
+  - Random Effect - Derived from Link Mixed Model
 
 ## Simulation Summary
 
