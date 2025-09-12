@@ -1,0 +1,116 @@
+---
+title: "Brownlow Medal Model"
+format: 
+  html:
+    theme: cosmo
+    grid:
+      body-width: 2000px
+    embed-resources: true
+    template-partials: 
+      - title-block.html
+toc: true
+title-block-banner: true
+title-block-banner-color: "#4097C2"
+subtitle: "Plus a heap of tables and graphs"
+author: "Rex Carruthers"
+execute:
+  echo: false
+  warning: false
+---
+
+## Overview
+
+Ordinal model for 0-3 votes scaled to 6 expected votes per match then simulated 2000 times
+
+Model features:
+
+  - Margin
+  - Goals
+  - Disposals
+  - Frees.Against
+  - Hit.Outs
+  - Marks
+  - Kicks
+  - Handballs
+  - Clearances
+  - ratingPoints
+  - dreamTeamPoints
+
+## Simulation Summary
+
+```{r}
+library(tidyverse)
+library(DT)
+library(formattable)
+library(shiny)
+library(plotly)
+library(rmarkdown)
+
+# load(file = "simsum.RData")
+# load(file = "rs.RData")
+# load(file = "roundsum.RData")
+# load(file = "aa.RData")
+# load(file = "chance.RData")
+load(file = "MMOmodel.RData")
+```
+
+```{r}
+a <- left_join(aa, chance, by = c("ID" = "ID", "Player" = "Player", "Playing.for" = "Playing.for"))
+a <- a %>%
+  mutate(across(where(is.numeric), ~round(., digits = 2))) %>% ungroup()
+a %>% select(-ID) %>% arrange(desc(meanV)) %>%
+  formattable(list(meanV = color_bar("lightblue"), area(col = first:topten) ~ color_tile("transparent", "green"))) %>%
+  as.datatable(rownames = FALSE)
+```
+
+## Round Expected Votes
+
+```{r}
+b <- aa %>% select(ID, Player, meanV)
+r <- left_join(rs,b,by = c("ID" = "ID", "Player" = "Player"))
+r <- r %>%
+  mutate(across(where(is.numeric), ~round(., digits = 1)))
+r <- r %>%
+  mutate(across(everything(), ~replace_na(as.character(.), ""))) %>% ungroup()
+r %>% mutate(meanV = as.numeric(meanV)) %>% arrange(desc(meanV)) %>% select(-ID, -meanV) %>%
+  formattable(list(area(col = `1`:`25`) ~ color_tile("transparent", "pink"))) %>%
+  as.datatable(rownames = FALSE)
+```
+## Vote Range Histogram - Top 10
+
+```{r}
+#| fig-height: 10
+library(forcats)
+
+pl <- aa %>% arrange(desc(meanV)) %>% select(ID) %>% head(n = 10) %>% pull()
+sd <- left_join(simsum,aa,by=c("ID" = "ID", "Player" = "Player", "Playing.for" = "Playing.for")) %>%
+  filter(ID %in% pl)
+
+p <- ggplot(data = sd, aes(x = Votes, fill = Playing.for)) +
+      geom_histogram(colour = "black", binwidth = 1) +
+      geom_vline(data = sd, aes(xintercept = meanV), linewidth = 1.5, linetype = "dashed", colour = "red") +
+      geom_vline(data = sd, aes(xintercept = q25), linewidth = 1.5, linetype = "dashed", colour = "yellow") +
+      geom_vline(data = sd, aes(xintercept = q975), linewidth = 1.5, linetype = "dashed", colour = "yellow") +
+      geom_vline(data = sd, aes(xintercept = q150), linewidth = 1.5, linetype = "dashed", colour = "orange") +
+      geom_vline(data = sd, aes(xintercept = q850), linewidth = 1.5, linetype = "dashed", colour = "orange") +
+      facet_wrap(~fct_reorder(Player, meanV, .desc = TRUE), ncol = 1) +
+  theme_bw()
+
+ggplotly(p)
+```
+
+## Line Plot - Top 10
+
+```{r}
+#| fig-height: 10
+roundsum <- roundsum %>% group_by(ID, Player, Playing.for) %>% mutate(cV = cumsum(mExpSV))
+roundsum <- roundsum %>% filter(ID %in% pl)
+
+lp <- ggplot(data = roundsum, aes(x = Round, y = cV, colour = Player)) +
+  geom_line() +
+  geom_point() +
+  theme_bw()
+
+ggplotly(lp)
+```
+
