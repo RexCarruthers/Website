@@ -10,7 +10,6 @@ format:
       - title-block.html
 toc: true
 title-block-banner: true
-title-block-banner-color: "#4097C2"
 subtitle: "Plus a heap of tables and graphs"
 author: "Rex Carruthers"
 execute:
@@ -20,22 +19,26 @@ execute:
 
 ## Overview
 
-Ordinal model for 0-3 votes scaled to 6 expected votes per match then simulated 2000 times.
+Ordinal model for 0-3 votes scaled to 6 expected votes per match then simulated 10,000 times.
 
 Model features:
 
-  - Margin
-  - Goals
-  - Disposals
-  - Frees.Against
-  - Hit.Outs
-  - Marks
-  - Kicks
-  - Handballs
-  - Clearances
-  - ratingPoints
-  - dreamTeamPoints
-  - Random Effect - Derived from Link Mixed Model
+-   Margin
+-   Goals
+-   Effective Disposals
+-   Frees Against
+-   Contested Marks
+-   Intercept Marks
+-   Uncontested Possessions
+-   Contested Possessions
+-   Spoils
+-   Marks Inside 50
+-   Clearances
+-   ratingPoints
+-   dreamTeamPoints
+-   Metres Gained
+-   Tackles
+-   Random Intercept Effect - Derived from Link Mixed Model
 
 ## Simulation Summary
 
@@ -43,49 +46,37 @@ Model features:
 library(tidyverse)
 library(DT)
 library(formattable)
-library(shiny)
 library(plotly)
 library(rmarkdown)
 
-# load(file = "simsum.RData")
-# load(file = "rs.RData")
-# load(file = "roundsum.RData")
-# load(file = "aa.RData")
-# load(file = "chance.RData")
-load(file = "MMOmodel.RData")
+load(file = "MMOmodel3b-ul.RData")
 ```
 
 ```{r}
-a <- left_join(aa, chance, by = c("ID" = "ID", "Player" = "Player", "Playing.for" = "Playing.for"))
-a <- a %>%
-  mutate(across(where(is.numeric), ~round(., digits = 2))) %>% ungroup()
 a %>% select(-ID) %>% arrange(desc(meanV)) %>%
   formattable(list(meanV = color_bar("lightblue"), area(col = first:topten) ~ color_tile("transparent", "green"))) %>%
-  as.datatable(rownames = FALSE)
+  as.datatable(rownames = FALSE, filter = "top", options = list(
+  columnDefs = list(
+    list(width = '200px', targets = 0),
+    list(width = '200px', targets = 1))))
 ```
 
 ## Round Expected Votes
 
 ```{r}
-b <- aa %>% select(ID, Player, meanV)
-r <- left_join(rs,b,by = c("ID" = "ID", "Player" = "Player"))
-r <- r %>%
-  mutate(across(where(is.numeric), ~round(., digits = 1)))
-r <- r %>%
-  mutate(across(everything(), ~replace_na(as.character(.), ""))) %>% ungroup()
 r %>% mutate(meanV = as.numeric(meanV)) %>% arrange(desc(meanV)) %>% select(-ID, -meanV) %>%
   formattable(list(area(col = `1`:`25`) ~ color_tile("transparent", "pink"))) %>%
-  as.datatable(rownames = FALSE)
+  as.datatable(rownames = FALSE, filter = "top", options = list(
+  columnDefs = list(
+    list(width = '200px', targets = 0),
+    list(width = '200px', targets = 1))))
 ```
+
 ## Vote Range Histogram - Top 10
 
 ```{r}
 #| fig-height: 10
 library(forcats)
-
-pl <- aa %>% arrange(desc(meanV)) %>% select(ID) %>% head(n = 10) %>% pull()
-sd <- left_join(simsum,aa,by=c("ID" = "ID", "Player" = "Player", "Playing.for" = "Playing.for")) %>%
-  filter(ID %in% pl)
 
 p <- ggplot(data = sd, aes(x = Votes, fill = Playing.for)) +
       geom_histogram(colour = "black", binwidth = 1) +
@@ -104,10 +95,8 @@ ggplotly(p)
 
 ```{r}
 #| fig-height: 10
-roundsum <- roundsum %>% group_by(ID, Player, Playing.for) %>% mutate(cV = cumsum(mExpSV))
-roundsum <- roundsum %>% filter(ID %in% pl)
 
-lp <- ggplot(data = roundsum, aes(x = Round, y = cV, colour = Player)) +
+lp <- ggplot(data = rss, aes(x = Round, y = cV, colour = Player)) +
   geom_line() +
   geom_point() +
   theme_bw()
@@ -115,3 +104,19 @@ lp <- ggplot(data = roundsum, aes(x = Round, y = cV, colour = Player)) +
 ggplotly(lp)
 ```
 
+## Game Viewer
+
+```{r}
+b %>% arrange(desc(mExpSV)) %>% select(Player, Round, Game, mExpSV, Margin, dreamTeamPoints, ratingPoints, Goals, `(Intercept)`) %>%
+      formattable(list(mExpSV = color_bar("lightblue"),
+                       area(col = Margin) ~ color_tile("transparent", "purple"),
+                       dreamTeamPoints = color_bar("pink"),
+                       ratingPoints = color_bar("lightgrey"),
+                       Goals = color_bar("lightgreen"),
+                       `(Intercept)` = color_bar("lightyellow"))) %>%
+      as.datatable(rownames = FALSE, filter = "top", options = list(
+  columnDefs = list(
+    list(width = '200px', targets = 0),
+    list(width = '50px', targets = 1),
+    list(width = '300px', targets = 2))))
+```
