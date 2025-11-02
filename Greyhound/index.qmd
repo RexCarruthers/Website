@@ -32,11 +32,11 @@ I hypothesis that barrier 1 is by far the best barrier to be given (especially a
 ```{r}
 #| message: false
 #| warning: false
-library(tidyverse)
-library(performance)
-library(sjPlot)
-library(lme4)
-library(broom.mixed)
+library(tidyverse)    # Graphing and data transform
+library(performance)  # Model diagnostics
+library(sjPlot)       # Model diagnostics
+library(plotly)       # Interactive plots
+library(broom.mixed)  # Model diagnostics
 ```
 
 ## Data Import and Clean
@@ -58,7 +58,7 @@ The "BASIC" free data that Betfair provides gives a date/time, track and market_
 
 As Betfair is an exchange and not a bookmaker the odds don't include an overround or vigorish portion that the bookmaker would make money. This simplifies the process of turning the odds into implied winning probabilities to just the inverse of the odds.
 
-The is some data cleaning required to remove dogs that didn't run and some additional quinella/head to head markets that we aren't looking at for this study. I have also only used races where the market has matured and the sum of implied probabilities are close to 100% and there are 8 dogs in the race so all barriers are full. This removes occasions where dogs in inside barriers get clear runs due to having empty barriers next to them which we would have to create a feature for and reduces the amount of data to a more manageable level. The number below shows the number of races remaining after the cull.
+There is some data cleaning required to remove dogs that didn't run and some additional quinella/head to head markets that we aren't looking at for this study. I have also only used races where the market has matured and the sum of implied probabilities are close to 100% and there are 8 dogs in the race so all barriers are full. This removes occasions where dogs in inside barriers get clear runs due to having empty barriers next to them which we would have to create a feature for and reduces the amount of data to a more manageable level. The number below shows the number of races remaining after the cull.
 
 ```{r}
 # Remove non running dogs and irrelevant markets
@@ -130,7 +130,7 @@ cc <- data %>%
   mutate(apc = round((wins/runs)*100,2))
 
 # Scatterplot
-cc %>% ggplot(aes(x = avgP, y = apc, colour = runs)) +
+p1 <- cc %>% ggplot(aes(x = avgP, y = apc, colour = runs)) +
   geom_abline(slope = 1, intercept = 0, colour = "red", linetype = "dashed") +
   geom_point(size = 5) +
   geom_line() +
@@ -138,6 +138,8 @@ cc %>% ggplot(aes(x = avgP, y = apc, colour = runs)) +
   labs(title = "Odds Calibration",
        x = "Odds Inferred Win %",
        y = "Actual Win %")
+
+ggplotly(p1)
 ```
 
 We can see that the points follow the perfect correlation line very closely until the 57.5% mark where it deviates slightly towards a higher actual win percentage. This may show the presence of the favourite-longshot bias (which is also defined well in Buchdahl's [pdf](https://www.football-data.co.uk/The_Wisdom_of_the_Crowd_updated.pdf)) but also is only a very small percentage of the data set. It's hard to tell the magnitude of the drop off in runs by the colour legend but there are only 1,265 runs out of 450,896 in our remaining data set with odds under \$1.40 or approx. 71.4%. This speaks to the inherent difficulty in predicting dog races.
@@ -146,19 +148,21 @@ To show this more clearly below is a distribution of the implied probabilities w
 
 ```{r}
 # Implied Prob Distribution
-data %>% ggplot(aes(x = prob)) +
+p2 <- data %>% ggplot(aes(x = prob)) +
   geom_histogram(colour = "white", fill = "lightblue", bins = 20) +
   theme_minimal() +
   labs(x = "Inferred Probabilities",
        title = "Greyhound Probability Distribution",
        subtitle = "Bins = 20")
+
+ggplotly(p2)
 ```
 
 Finally I calculated the win rate per barrier to answer the first part of the hypothesis. I have included a line at 100/8 = 12.5% to show where all the barriers would be if the result was uniformly distributed across barriers.
 
 ```{r}
 # Plot winrate per barrier
-data %>% filter(rug <= 8) %>%
+p3 <- data %>% filter(rug <= 8) %>%
   group_by(rug) %>%
   summarise(runs = n(),
             wins = sum(result == "WINNER"),
@@ -180,6 +184,8 @@ data %>% filter(rug <= 8) %>%
   labs(x = "Rug",
        y = "Win Percentage") +
   theme(legend.position = "")
+
+ggplotly(p3)
 ```
 
 You can see straight away that barrier 1 has a massive advantage winning over 17.5% of races with barrier 2 second with just under 15%. The percentage continues to decrease until you get to 7 and 8 who have slightly more room to run on the outside. This confirms the first half of our hypothesis, however, is this information included in the market odds?
@@ -188,7 +194,7 @@ If we group these by distance you can see that the barrier one advantage is simi
 
 ```{r echo=FALSE}
 # Plot winrate per barrier
-data %>% filter(rug <= 8) %>%
+p4 <- data %>% filter(rug <= 8) %>%
   group_by(rug, dist_cat) %>%
   summarise(runs = n(),
             wins = sum(result == "WINNER"),
@@ -212,6 +218,8 @@ data %>% filter(rug <= 8) %>%
        y = "Win Percentage") +
   theme(legend.position = "") +
   facet_wrap(~dist_cat)
+
+ggplotly(p4)
 ```
 
 ## Modelling
@@ -286,7 +294,7 @@ barrier_effects <- fixed_effects %>%
   filter(grepl("rug_f", term)) %>%
   mutate(barrier = as.numeric(gsub("rug_f", "", term)))
 
-ggplot(barrier_effects, aes(x = barrier, y = odds_ratio)) +
+p5 <- ggplot(barrier_effects, aes(x = barrier, y = odds_ratio)) +
   geom_point(size = 3, color = "darkblue") +
   geom_errorbar(aes(ymin = or_lower, ymax = or_upper), width = 0.2) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
@@ -297,6 +305,8 @@ ggplot(barrier_effects, aes(x = barrier, y = odds_ratio)) +
     y = "Odds Ratio"
   ) +
   theme_minimal()
+
+ggplotly(p5)
 ```
 
 We can see straight away the plot takes the same shape as what we saw in the data exploration with barrier 1 having the greatest advantage with the win rate plummeting until we reach barrier 7.
@@ -319,7 +329,7 @@ barrier_effects <- fixed_effects %>%
   filter(grepl("rug_f", term)) %>%
   mutate(barrier = as.numeric(gsub("rug_f", "", term)))
 
-ggplot(barrier_effects, aes(x = barrier, y = odds_ratio)) +
+p6 <- ggplot(barrier_effects, aes(x = barrier, y = odds_ratio)) +
   geom_point(size = 3, color = "darkgreen") +
   geom_errorbar(aes(ymin = or_lower, ymax = or_upper), width = 0.2) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
@@ -330,6 +340,8 @@ ggplot(barrier_effects, aes(x = barrier, y = odds_ratio)) +
     y = "Odds Ratio"
   ) +
   theme_minimal()
+
+ggplotly(p6)
 ```
 
 Now every barrier except for 8 has increased odds over barrier 1. This suggests that the market on average over values the dog in barrier 1 compared to the field with the error bars for barriers 3, 5, 6 and 7 entirely in the positive.
