@@ -19,13 +19,37 @@ execute:
 
 ## Motivation and Hypothesis
 
-Contrived situation to act as a tutorial to explain how to use data exploration and modelling techniques in R.
+It's a familiar scene in pubs across Australia: the main races are done, conversation has turned to the dogs on the TAB screens, and someone is loudly proclaiming that box 1 is always the smart bet. "Inside rail, mate - always has the advantage!" Meanwhile, your middle-barrier pick gets squeezed out at the first turn, and you're left wondering whether there's actually data to back up the conventional wisdom, or if it's just another racing myth fueled by selective memory and confirmation bias.
 
-The situation:
+I hypothesise that barrier 1 is by far the best barrier statistically to be given (especially at shorter race distances) but that advantage is included in the betting market price.
 
-I’ve had plenty of lively pub conversations after a few beers, when it’s down to just the dogs left on the TAB, about which barrier is the best. There’s always one bloke who won’t stop going on about how the favourite in box one is the only smart bet and how I should’ve known better than to back a middle barrier dog, since they were always going to get taken out.
+While this analysis uses greyhound racing as its subject, it's primarily meant as a tutorial for data exploration and modeling techniques in R. The contrived "pub conversation" framing serves to make the statistical concepts more concrete and relatable. The methods demonstrated here are broadly applicable to any prediction problem with binary outcomes.
 
-I hypothesis that barrier 1 is by far the best barrier to be given (especially at shorter race distances) but that advantage is included in the betting market price.
+#### Tutorial Structure
+
+We'll walk through the following analytical workflow:
+
+1.  **Data import and cleaning**: Processing Betfair's historical data and filtering for analysis-ready races
+
+2.  **Exploratory analysis**: Visualizing barrier win rates and testing market calibration
+
+3.  **Model building**: Creating and comparing logistic regression models of increasing complexity
+
+4.  **Statistical testing**: Using likelihood ratio tests and AIC to compare model performance
+
+5.  **Interpretation**: Translating model coefficients into practical insights about market efficiency
+
+#### Prerequisites
+
+This tutorial assumes familiarity with:
+
+-   R programming and tidyverse syntax
+
+-   Basic probability concepts (odds, implied probability)
+
+-   Regression fundamentals (coefficients, p-values, odds ratios)
+
+-   General understanding of betting markets (optional but helpful)
 
 ## Packages
 
@@ -41,7 +65,7 @@ library(broom.mixed)  # Model diagnostics
 
 ## Data Import and Clean
 
-I downloaded all of the [Betfair Historical](https://historicdata.betfair.com/#/home) greyhound data from the start of 2023 until the present (October 2025) and parsed the compressed json files into csv using their supplied python script that I updated (with a lot of help from Claude) to handle some of the data type errors I was getting. Here is the updated python script on my [Github](https://github.com/RexCarruthers/Website/blob/main/Greyhound/jtc3.py) if anyone is interested.
+I downloaded all of the [Betfair Historical](https://historicdata.betfair.com/#/home) greyhound data from the start of 2023 until the present (October 2025) and parsed the compressed json files into csv using their supplied python script that I updated (with a lot of help from my mate Claude) to handle some of the data type errors I was getting. Here is the updated python script on my [Github](https://github.com/RexCarruthers/Website/blob/main/Greyhound/jtc3.py) if anyone is interested.
 
 Below is a sample of the data they provide for each race:
 
