@@ -1,0 +1,423 @@
+---
+title: "Brownlow Medal Model"
+format: 
+  html:
+    theme: cosmo
+    grid:
+      body-width: 1400px
+    embed-resources: true
+    template-partials: 
+      - title-block.html
+toc: true
+title-block-banner: true
+subtitle: "Creation of an ordinal model + random effects"
+author: "Rex Carruthers"
+execute:
+  warning: false
+---
+
+## Introduction
+
+This post is intended as a tutorial for how to use ordinal regression models with random effects and Monte Carlo simulation to predict the winner of the Brownlow Medal.
+
+#### Tutorial Structure
+
+This tutorial will walk you through the following workflow:
+
+1.  **Data import and cleaning**: Combining match statistics from multiple sources to build our modeling data set
+
+2.  **Random effects estimation**: Building a mixed model to extract player-specific intercepts
+
+3.  **Final model training**: Creating an ordinal regression model with our selected features
+
+4.  **Prediction and scaling**: Generating vote probabilities for each player-game
+
+5.  **Monte Carlo simulation**: Running thousands of virtual Brownlow counts to estimate outcome probabilities
+
+#### Acknowledgments
+
+This tutorial builds on the excellent work by [Robert Nguyen](https://analysisofafl.netlify.app/models/2018-05-02-building-your-own-brownlow-model/), whose approach to Brownlow modeling provided the foundation for this analysis. The data comes from the fantastic fitzRoy package, which makes AFL statistics easily accessible to R users.
+
+#### Prerequisites
+
+This tutorial assumes familiarity with:
+
+-   R programming and the tidyverse
+
+-   Basic statistical modeling concepts (regression, p-values, coefficients)
+
+-   General understanding of AFL rules and the Brownlow voting system
+
+## Packages
+
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)  # Plotting and data transformation
+library(data.table) # Data transform
+library(fitzRoy)    # AFL data
+library(plotly)     # Interactive plots
+library(ordinal)    # Chosen model
+library(lme4)       # Random effects
+library(sjPlot)     # Model diagnostics
+library(performance)# Model diagnostics
+```
+
+## Data Import
+
+The data for the model comes the amazing package fitzRoy which contains data sets from several different AFL sources. We will be using the official AFL website (p) for the less common box score stats like intercept marks and rating points and the afltables source for the Brownlow data (pb).
+
+These two sources use different game and player ID schemes as well team names, round numbers etc etc. So I've created the [Id.csv](https://github.com/RexCarruthers/Website/blob/main/BLModel/Id.csv) and [gameId.csv](https://github.com/RexCarruthers/Website/blob/main/BLModel/gameID.csv) files you can see imported below to link the two sources. I've uploaded them to my Github for anyone to use.
+
+They currently only contain the players and games IDs for the last 10 seasons (2016-2025) which is what we will be using for our models. We can loop through all the seasons to download the data through fitzRoy. Ideally you would save the output locally so you don't have to download it each time.
+
+```{r}
+# Last 10 years of data
+years <- 2016:2025
+
+# AFL Data
+p <- list()
+for (i in 1:length(years)){
+  p[[i]] <- fetch_player_stats(season = years[i], source = "AFL", comp = "AFLM")
+}
+
+# AFL Tables Data
+pb <- list()
+for (i in 1:length(years)){
+  pb[[i]] <- fetch_player_stats(season = years[i], source = "afltables", comp = "AFLM")
+}
+
+# Created csv to join data sources
+Id <- read.csv("Id.csv")
+gameId <- read.csv("gameID.csv")
+```
+
+## Data Clean
+
+The AFL and afltables data contains 95 and 81 columns of data respectively with a row per player per game (92458 rows total). As we will be using each players individual performance within a game context to model Brownlow votes this is the perfect format but there is a bit of data wrangling to be performed before we can get into the interesting bit of modelling so I'll just give a quick overview and feel free to copy the code and run it yourself to see what each step does.
+
+The main tasks performed:
+
+-   Use the package data.tables rbindlist to bind each seasons data into a single data frame
+
+-   Merge the two sources together with the gameId/Id data
+
+-   Create inferred variables that we will need for modelling/give context to the result (margin, home/away, player full name)
+
+-   Handle some date formatting
+
+-   Remove missing data, finals series and 2020 season
+
+    -   The 2020 season was removed due to the shorter quarters during the covid impacted year meaning lower stats will result in Brownlow votes than normal seasons
+
+    -   There is quite a lot of rating points data missing in the 2016 season. These player games have been removed
+
+-   Select only the variables I've pre-selected for the modelling
+
+-   Convert our outcome variable Brownlow.Votes to a factor for the ordinal regression model
+
+```{r}
+pb <- rbindlist(pb)
+pb <- pb %>%
+  mutate(Margin = case_when(Home.team == Playing.for ~ Home.score - Away.score,
+                            Away.team == Playing.for ~ Away.score - Home.score),
+                    Player = paste(First.name, Surname),
+                    Home.Away = case_when(Playing.for == Home.team ~ "Home",
+                                          Playing.for == Away.team ~ "Away"))
+
+# remove unused 'extendedStats' column from 2016 to match all other seasons
+p[[1]] <- subset(p[[1]], select = -extendedStats)
+p <- rbindlist(p)
+
+p <- p %>% mutate(Season = year(as_date(p$utcStartTime[])))
+
+Id <- Id %>% select(player.playerId, ID) %>% unique() %>% remove_missing()
+p <- left_join(p, Id, by = c("player.playerId"))
+
+gameId$Date <- as.Date(gameId$Date,format="%d/%m/%Y")
+pb <- left_join(pb, gameId,
+                by = c("Season", "Round", "Date", "Home.team", "Away.team"))
+
+p <- p %>% filter(!is.na(ID) & !is.na(extendedStats.hitoutsToAdvantage))
+
+# Removing finals (not the best way to do this)
+pb$Round <- as.integer(pb$Round)
+pb <- pb %>% filter(!is.na(Round))
+
+pb <- left_join(pb, p, by = c("ID" = "ID", "providerId" = "providerId", "Season" = "Season"))
+
+pb <- pb %>%
+  select(Season, Round, Playing.for, Home.team, Away.team, Home.Away, Margin,
+         Player, ID,
+         Brownlow.Votes,
+         dreamTeamPoints,ratingPoints,Margin,Goals,
+         metresGained,scoreInvolvements,Clearances,
+         extendedStats.interceptMarks,
+         Frees.Against) %>%
+  mutate(Brownlow.Votes = as.factor(Brownlow.Votes)) %>%
+  filter(!is.na(ratingPoints)) %>%
+  filter(Season != 2020)
+```
+
+## Modelling
+
+Usually before modelling I would perform a very detailed and robust data exploratory analysis to justify the feature selection, creation and transformation. You'll just have to take my word that this has been performed to a satisfactory degree and I've selected some interesting features to model. This has been skipped to continue with the focus of the post (ordinal regression, random effects and simulation) and allows you to have fun with it when you create your model.
+
+We will split the data into test/train sets but in this case we will just be creating one model to make predictions with so think of them as the train and prediction sets. We will train the data on everything we have leading up to the 2025 season and then use that model to predict it.
+
+The novel part of this post is that we are going to create a cumulative link mixed model (clmm from the ordinal package) initially to produce a random intercept for each player hoping to capture information about each player allowing for the other selected features of the model. We will then use this as a feature in our main model. This attempts to capture quantifiable elements like:
+
+-   Umpire reputation/recognition effects
+
+-   Positional biases (Midfielder medal)
+
+-   "Star power" from name/media recognition
+
+This is accomplished by adding (1\|ID) to the model features as seen in the code below:
+
+```{r}
+# Split data
+train <- pb %>% filter(Season >= 2016 & Season <= 2024)
+test <- pb %>% filter(Season == 2025)
+
+# Cumulative model
+fmm1 <- clmm(Brownlow.Votes ~ dreamTeamPoints+Margin+Goals+
+                              metresGained+scoreInvolvements+Clearances+
+                              extendedStats.interceptMarks+ratingPoints+
+                              Frees.Against+
+                              (1|ID),
+             data = train)
+
+# Pull out the player random effects
+re <- ranef(fmm1)[[1]]
+re$ID <- rownames(re)
+re$ID <- as.numeric(re$ID)
+rownames(re) <- NULL
+
+# Add the player effects to the training/test set
+train <- left_join(train,re,by="ID") %>% mutate(`(Intercept)` = `(Intercept)`)
+test <- left_join(test,re,by="ID")
+# Replace NAs with 0 if they didn't play in previous seasons
+test <- test %>% replace_na(list(`(Intercept)` = 0)) %>% mutate(`(Intercept)` = `(Intercept)`)
+```
+
+The model summary is similar to what we see when we run the main model so we'll jump straight to the random effects. Below is distribution of all the players random effects for the 2025 season. We can see that the majority of players around the zero effect mark who haven't played enough games or don't get enough stats during the game to get the attention of the umpires in a positive or negative way. However, we can see that the values of the intercept ranges from approx. -1 to 2 meaning they have that advantage/disadvantage towards the models cumulative log-odds threshold before the ball is even bounced. Once we produce the main model I'll show the context of how this number effects the predicted Brownlow votes.
+
+```{r}
+p1 <- test %>% select(ID, `(Intercept)`) %>% unique() %>%
+  ggplot(aes(x = `(Intercept)`)) +
+  geom_histogram(colour = "white") +
+  theme_minimal() +
+  labs(title = "2025 Player Random Effect Distribution",
+       x = "Random Intercept")
+
+ggplotly(p1)
+```
+
+That below tables show the 15 lowest and highest random effects for players going into the 2025 season which I think easily passes the pub test.
+
+```{r}
+test %>% select(Player, Playing.for, `(Intercept)`) %>% unique() %>% arrange(`(Intercept)`) %>% head(15)
+test %>% select(Player, Playing.for, `(Intercept)`) %>% unique() %>% arrange(desc(`(Intercept)`)) %>% head(15)
+```
+
+Now that we have all our features we can train our ordinal model. An ordinal model was selected to account for the ordered structure of the Brownlow voting with the player receiving 3 votes theoretically having a better game than the one given 2 and so on. This method can also deal with the unbalanced nature of our data set with the majority of players each game recieving 0 votes. Using the same features as before + the player intercept we can run the model with the clm function this time as we aren't calculating random effects. Below is a summary of the model:
+
+```{r}
+# Ordinal Model
+fm1 <- clm(Brownlow.Votes ~ dreamTeamPoints+Margin+Goals+
+                            metresGained+scoreInvolvements+Clearances+
+                            extendedStats.interceptMarks+ratingPoints+
+                            Frees.Against+`(Intercept)`,
+           data = train)
+# Model info
+summary(fm1)
+```
+
+The summary shows that all of the features we have selected have a statistically significant impact on the probability of Brownlow votes with Dream Team points, Margin, Goals and Clearances having the biggest impact of the box score metrics by z-value.
+
+A surprising finding of the model is that frees against have a positive impact on Brownlow probability which is very counter intuitive. This is likely due to the fact that players who get a lot of the ball are more likely to be in positions to give away free kicks. This is a confounding effect and may mean we have some multicollinearity issues with our model. We can check this with the check_model function from the performance package below.
+
+The random intercept term (coefficient 1.47) suggests substantial player-specific bias showing some players consistently get more/fewer votes than their stats alone can predict.
+
+The threshold coefficients show how the model calculates the probability of each vote. By summing the estimates/standard error of each feature and comparing it to the coefficients. You can see that the gap to each successive vote level increases with each jump. This number gives some context to the advantage given by the player random intercepts. A player with a random intercept of 2 will start with that multiplied by the coefficient (1.47) = \~2.94. **This is equivalent to kicking \~4.5 extra goals, \~20 extra clearances or playing in a game with a 208 point margin advantage.**
+
+```{r}
+# Collinearity check
+check_model(fm1)
+```
+
+We can see that we do have some multicollinearity issues with Dream Team points, Margin and Free Against the features in red but will choose to ignore them and move on for the sake of the post.
+
+## Prediction
+
+Now you have a model you are happy with we can use it to predict the probability of a player receiving votes for each of their game in the 2025 season with the predict function as per the following code. We multiply the probability of being awarded 1 vote by 1, 2 votes \* 2 and 3 votes \* 3 to calculate an expected amount of votes for the game.
+
+```{r}
+# Create 0,1,2,3 vote probabilities for each player-game
+predict <- predict(fm1, newdata = test[,-"Brownlow.Votes"], type = "prob")
+predict.m <- data.frame(matrix(unlist(predict), nrow= nrow(test)))
+colnames(predict.m) <- c("vote.0", "vote.1", "vote.2", "vote.3")
+
+test <- cbind(test,predict.m)
+test$expected.votes <- test$vote.1 + 2*test$vote.2 + 3*test$vote.3
+```
+
+The issue we have with this strategy is that the model doesn't have the context of the game when assigning vote probability and can potentially give 3 points to multiple players in a high scoring and possession game when we know that exactly 6 points are on offer each game. Which you can see below:
+
+```{r}
+test %>% group_by(Season, Round, Home.team, Away.team) %>% summarise(exv = sum(expected.votes))
+```
+
+Depending on how we are simulating each game in the next section we are actually skip this step as we will be going through the same process the umpires take of assessing each game individually. However, to make the results more intuitive and give us an idea of the result we will see we can scale the predictions for each player within each game back to 6.
+
+```{r}
+## Scale prediction to equal 100% for each match
+
+# Save expected totals for each game
+c <- test %>%
+  group_by(Season, Round, Home.team, Away.team) %>%
+  summarise(v1 = sum(vote.1),
+            v2 = sum(vote.2),
+            v3 = sum(vote.3))
+
+# Join back to prediction df
+test <- left_join(test, c,
+                  by = c("Season" = "Season", "Round" = "Round",
+                         "Home.team" = "Home.team", "Away.team" = "Away.team"))
+
+# Scale each prediction based on the game total expected votes
+test <- test %>% mutate(adV1 = vote.1/v1,
+                  adV2 = vote.2/v2,
+                  adV3 = vote.3/v3)
+
+# Recalculate each players expected votes
+test$expected.votes <- test$adV1 + 2*test$adV2 + 3*test$adV3
+
+# Check it worked
+test %>% group_by(Season, Round, Home.team, Away.team) %>%
+  summarise(exv = sum(expected.votes))
+```
+
+We can now aggregate the expected votes for each player for the season to give us a leader board and expected votes for each player. You can clearly see the influence of the player random effects in our results:
+
+```{r}
+aggregate(expected.votes~Player, data = test, FUN = sum) %>%
+  arrange(desc(expected.votes)) %>%
+  head(10)
+```
+
+## Simulation
+
+Having a leader board with expected points is all well and good but it has players being awarded fractions of points and doesn't tell us how confident we are in the prediction or if there is a universe where Matt Rowell's Mum baked brownies for the umpires every match.
+
+To answer these questions we are going to set up a more realistic voting process using our predictions and then repeat the count over and over again. The are an plenty of different ways to accomplish this and this is certainly not the fastest but is fine for our needs.
+
+The code below does the following simple process for each simulation:
+
+-   Select the first game
+
+-   Sample without replacement the player to receive 3 votes with the probability of being selected based on the players game expected votes
+
+-   Repeat for 2 votes
+
+-   Repeat for 1 vote
+
+-   Game result is saved in the sim data frame
+
+-   Move on to the next game
+
+As we are just demonstrating the process we will only simulate 100 counts but you can change N to anything you like. You'll have to increase the efficiency of the code to go over 50,000 though.
+
+```{r}
+# Simulation set up
+
+set.seed(123)
+# Number of games to loop through
+g <- test %>% select(Season, Round, Home.team, Away.team) %>% unique() %>% nrow()
+# Create a game id variable that we will use g to loop through
+test <- test %>%
+  group_by(Season, Round, Home.team, Away.team) %>%
+  mutate(gid = cur_group_id()) %>% ungroup()
+# df with only the information we need for the sims to save time/space
+ds <- test %>% select(ID, expected.votes, gid) %>% mutate(simVotes = 0)
+# Number of simulations
+N <- 100
+# List to save the results of each sim
+sims <- list()
+
+# Sim loop
+for (i in 1:N){
+  
+  # Game loop
+  for(y in 1:g){
+    
+    # Select game from the loop index
+    game <- subset(ds, gid == y)
+    # Sample without replacement the 3, 2, 1 votes based on each players game expected votes
+    three <- sample(game$ID, 1, prob = game$expected.votes)
+    two <- sample(subset(game, ID != three)$ID, 1, prob = subset(game, ID != three)$expected.votes)
+    one <- sample(subset(game, ID != three & ID != two)$ID, 1, prob = subset(game, ID != three & ID != two)$expected.votes)
+    
+    # Saves the result of the game in the sim df
+    # If statement avoids using rbind for the first game of the season/sim
+    if (y == 1){
+      sim <- game %>% mutate(simVotes = case_when(ID == three ~ 3,
+                                                  ID == two ~ 2,
+                                                  ID == one ~ 1,
+                                                  TRUE ~ 0))
+    } else {
+      sim1 <- game %>% mutate(simVotes = case_when(ID == three ~ 3,
+                                                   ID == two ~ 2,
+                                                   ID == one ~ 1,
+                                                   TRUE ~ 0))
+      sim <- rbind(sim, sim1)
+    }
+    
+  }
+  
+  # save the sim number and result in the list
+  sim$sim <- i
+  sims[[i]] <- sim
+  
+}
+
+# unpack all the sims into one df
+sims <- rbindlist(sims)
+
+# Add back in the player and team information
+sims <- left_join(sims,test %>% select(Round, Player, ID, Playing.for, gid),by=c("ID", "gid"))
+
+# Total votes for each sim, rank players, summarise rankings
+sims %>%
+  group_by(sim, ID, Player, Playing.for) %>%
+  summarise(Votes = sum(simVotes)) %>%
+  group_by(sim) %>%
+  mutate(rank = min_rank(desc(Votes))) %>%
+  group_by(ID, Player, Playing.for) %>%
+  summarise(first = sum(rank == 1)/N*100,
+            second = sum(rank == 2)/N*100,
+            third = sum(rank == 3)/N*100,
+            topthree = sum(rank <= 3)/N*100,
+            topfive = sum(rank <= 5)/N*100,
+            topten = sum(rank <= 10)/N*100) %>%
+  arrange(desc(first))
+```
+
+## Final Thoughts
+
+As you can see in the output of the simulation that despite the large lead Nick Daicos had in expected points Matt Rowell was able to win 17 times out of 100 simulations or 17%.
+
+There is a lot more information that can be pulled out of the simulation data like mean votes, confidence intervals, round counts, vote distributions etc etc. Here's a [link](https://rexcarruthers.github.io/Website/BL2025/) to the model I created before the 2025 count (where I stupidly diluted the player random effects) for some examples of this.
+
+This tutorial demonstrated how combining ordinal regression, mixed effects modeling, and Monte Carlo simulation creates a sophisticated prediction framework that respects both the structure of the data and the uncertainty inherent in the problem.
+
+The key innovations were:
+
+1.  Using player-specific random effects to capture systematic umpire biases
+
+2.  Employing ordinal regression to respect the ordered nature of Brownlow votes
+
+3.  Simulating the actual voting process to generate probability distributions rather than point predictions
+
+Thanks for taking the time to read it.
