@@ -1,0 +1,24 @@
+---
+title: "Rex Carruthers"
+subtitle: "Data Scientist | Civil Engineer"
+image: profile.png
+about: # https://quarto.org/docs/websites/website-about.html
+  template: trestles
+  links:
+    - icon: github
+      text: Github
+      href: https://github.com/RexCarruthers/
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/rex-carruthers-7a319bbb/
+---
+
+Construction civil engineer turning a passion for sports analytics into a career. Sharing models, insights, and anything I find interesting. AFL tips, data dives, and betting analysis on the way. Aiming to join [Squiggle](https://squiggle.com.au/){.external target="_blank"} one day. Predictions coming soon.
+
+## Education
+
+La Trobe University \| Master's of Sports Analytics \| 2025 - Present
+
+CQUniversity \| Diploma of Professional Practice \| 2011 - 2015
+
+CQUniversity \| Bachelor of Civil Engineering \| 2011 - 2015

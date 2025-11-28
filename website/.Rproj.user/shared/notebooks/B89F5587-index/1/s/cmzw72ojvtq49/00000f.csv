@@ -1,0 +1,6 @@
+"0","# Stops the tibble from hiding some of the columns"
+"0","options(tibble.width = Inf)"
+"0","# Import the csv"
+"0","data <- read_csv(""output_full3.csv"")"
+"0","# Data sample"
+"0","data %>% select(event_date,track,market_name,selection_name,result,bsp) %>% head()"

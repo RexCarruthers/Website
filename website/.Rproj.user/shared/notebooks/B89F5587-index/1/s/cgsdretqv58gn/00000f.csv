@@ -1,0 +1,7 @@
+"0","#| message: false"
+"0","#| warning: false"
+"0","library(tidyverse)    # Graphing and data transform"
+"0","library(performance)  # Model diagnostics"
+"0","library(sjPlot)       # Model diagnostics"
+"0","library(plotly)       # Interactive plots"
+"0","library(broom.mixed)  # Model diagnostics"

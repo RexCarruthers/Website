@@ -1,0 +1,7 @@
+"0","# Implied Prob Distribution"
+"0","data %>% ggplot(aes(x = prob)) +"
+"0","  geom_histogram(colour = ""white"", fill = ""lightblue"", bins = 20) +"
+"0","  theme_minimal() +"
+"0","  labs(x = ""Inferred Probabilities"","
+"0","       title = ""Greyhound Probability Distribution"","
+"0","       subtitle = ""Bins = 20"")"
