@@ -15,8 +15,6 @@ website:
       
 format:
   html:
-    grid:
-      body-width: 900px
     theme:
       light: [cosmo, styles.scss]
       dark: [cosmo, styles-dark.scss]
