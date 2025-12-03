@@ -1,0 +1,288 @@
+---
+title: "Advent of Code 2025"
+author: "Rex Carruthers"
+format: html
+editor: visual
+---
+
+## Packages
+
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)
+```
+
+## Data Import Function
+
+```{r}
+#| echo: true
+#| code-fold: true
+#| code-summary: "expand for code"
+get_input <- function(year, day) {
+  # Load necessary packages
+  if (!requireNamespace("httr", quietly = TRUE)) install.packages("httr")
+  if (!requireNamespace("readr", quietly = TRUE)) install.packages("readr")
+  
+  library(httr)
+  library(readr)
+  
+  # Your Advent of Code session cookie
+  # You can find this in your browser's developer tools after logging in.
+  # It's recommended to store this securely, e.g., in an environment variable or a separate file.
+  # For this example, we'll assume it's stored in a file named 'session.txt'.
+  session_id <- readLines("session.txt")
+  
+  # Construct the URL for the puzzle input
+  url <- paste0("https://adventofcode.com/", year, "/day/", day, "/input")
+  
+  # Make the GET request with the session cookie
+  response <- GET(url, set_cookies(session = session_id))
+  
+  # Check if the request was successful
+  if (http_status(response)$category == "Success") {
+    # Extract the content and parse it as lines
+    input_data <- content(response, encoding = "UTF-8") %>%
+      read_lines()
+    return(input_data)
+  } else {
+    stop(paste("Failed to retrieve input:", http_status(response)$reason))
+  }
+}
+```
+
+
+## Solutions
+::: {.panel-tabset}
+
+## Day 1
+
+<https://adventofcode.com/2025/day/1>
+
+### Data Import
+
+```{r}
+#| message: false
+#| warning: false
+ip <- get_input(2025, 1)
+```
+
+### Part 1
+
+```{r}
+# Initialise variables
+sp <- 50
+zh <- 0
+
+# Loop through each
+for (i in 1:length(ip)){
+  
+  a <- str_extract(ip[i],"[:alpha:]")
+  n <- as.numeric(str_extract(ip[i],"[:digit:]+"))
+  
+  n <- n - ((n %/% 100) * 100)
+  
+  if (a == "L"){
+    sp <- sp - n
+  } else {
+    sp <- sp + n
+  }
+  
+  if (sp > 99){
+    sp <- sp - 100
+  } else if (sp < 0){
+    sp <- sp + 100
+  }
+  
+  if (sp == 0){
+    zh <- zh + 1
+  }
+  
+}
+
+print(zh)
+```
+
+### Part 2
+
+```{r}
+# Initialise variables
+sp <- 50
+zh <- 0
+
+for (i in 1:length(ip)){
+  
+  a <- str_extract(ip[i],"[:alpha:]")
+  n <- as.numeric(str_extract(ip[i],"[:digit:]+"))
+  
+  zh <- zh + (n %/% 100)
+  n <- n - ((n %/% 100) * 100)
+  
+  if (a == "L"){
+    sp <- sp - n
+  } else {
+    sp <- sp + n
+  }
+  
+  if (sp > 99){
+    if (z == 0 & sp != 100){
+      zh <- zh + 1
+    }
+    sp <- sp - 100
+  } else if (sp < 0){
+    sp <- sp + 100
+    if (z == 0){
+      zh <- zh + 1
+    }
+  }
+  
+  z <- 0
+  
+  if (sp == 0){
+    zh <- zh + 1
+    z <- 1
+  }
+  
+}
+
+print(zh)
+```
+
+## Day 2
+
+### Data Import
+
+```{r}
+#| message: false
+#| warning: false
+ip <- get_input(2025, 2)
+ip <- str_split_1(ip, ",")
+```
+
+### Part 1
+
+```{r}
+iid <- 0
+
+for (i in 1:length(ip)){
+  
+  for (r in str_extract(ip[i], "[:digit:]+(?=-)"):str_extract(ip[i], "(?<=-)[:digit:]+")){
+    
+    if (str_length(r) %% 2 == 0){
+      
+      if (str_sub(r, start = 1, end = (str_length(r)/2)) == str_sub(r, start = (str_length(r)/2)+1, end = str_length(r))){
+        iid <- iid + r
+      }
+    }
+  }
+}
+
+iid
+```
+
+### Part 2
+
+```{r}
+split_string_every_n <- function(text, n) {
+  len <- nchar(text)
+  starts <- seq(1, len, by = n)
+  ends <- pmin(starts + n - 1, len)
+  substring(text, starts, ends)
+}
+
+iid <- 0
+
+for (i in 1:length(ip)){
+  
+  for (r in str_extract(ip[i], "[:digit:]+(?=-)"):str_extract(ip[i], "(?<=-)[:digit:]+")){
+    
+    for (s in 2:str_length(r)){
+    
+      if (split_string_every_n(r, str_length(r)/s) %>% unique() %>% length() == 1 & str_length(r) > 1){
+
+        iid <- iid + r
+        break
+      }
+    }
+  }
+}
+
+iid
+```
+
+## Day 3
+
+### Data Import
+
+```{r}
+#| message: false
+#| warning: false
+ip <- get_input(2025, 3)
+```
+
+### Part 1
+
+```{r}
+ans <- 0
+
+for (i in 1:length(ip)){
+  
+  one <- str_sub(ip[i], start = 1, end = str_length(ip[1])-1) %>% str_extract_all(pattern = "[:digit:]")
+  one <- one[[1]] %>% max() %>% as.numeric()
+  
+  two <- str_sub(ip[i], str_locate(ip[i], as.character(one))[1,1]+1, str_length(ip[i]))
+  two <- two %>% str_extract_all(pattern = "[:digit:]")
+  two <- two[[1]] %>% max() %>% as.numeric()
+  
+  ans <- c(ans,as.numeric(paste0(one,two)))
+  
+}
+```
+
+### Part 2
+
+```{r}
+options(scipen = 999)
+
+ans <- 0
+
+for (i in 1:length(ip)){
+  
+  a <- ip[i]
+  ai <- ""
+ 
+  for (s in 1:12){
+    
+    n <- str_sub(a, start = 1, end = str_length(a)-(12-s)) %>% str_extract_all(pattern = "[:digit:]")
+    n <- n[[1]] %>% max() %>% as.numeric()
+    
+    ai <- c(ai,n)
+    a <- str_sub(a, start = str_locate(a, as.character(n))[1,1]+1, end = str_length(a))
+    
+  }
+  
+  ans <- c(ans,as.numeric(str_flatten(ai)))
+   
+}
+
+sum(ans)
+```
+
+
+## Day 4
+
+## Day 5
+
+## Day 6
+
+## Day 7
+
+## Day 8
+
+## Day 9
+
+## Day 10
+
+## Day 11
+
+## Day 12
