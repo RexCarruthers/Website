@@ -51,10 +51,9 @@ get_input <- function(year, day) {
 }
 ```
 
-
 ## Solutions
-::: {.panel-tabset}
 
+::: panel-tabset
 ## Day 1
 
 <https://adventofcode.com/2025/day/1>
@@ -268,7 +267,6 @@ for (i in 1:length(ip)){
 sum(ans)
 ```
 
-
 ## Day 4
 
 ## Day 5
@@ -286,3 +284,4 @@ sum(ans)
 ## Day 11
 
 ## Day 12
+:::
