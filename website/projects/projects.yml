@@ -2,23 +2,29 @@
   path: https://rexcarruthers.github.io/Website/Greyhound/
   image: images/gh.png
   description: >
-    Understanding how box position influences race outcomes is essential for anyone looking to gain an edge in greyhound racing.
-    In this post, we break down barrier performance using clean, data-driven visuals to highlight which boxes consistently over- or under-perform.
-    By examining patterns across tracks, distances, and conditions, we reveal how subtle positional advantages can compound into meaningful differences
-    in win rates. Whether you’re a casual punter or a form-focused analyst, this overview will help you interpret barrier data with more confidence and
-    spot opportunities others overlook.
+    Greyhound barrier performance analysis using free data available from Betfair.
+    Python code used to extract the data is available on my Github.
   categories: [R, GLM, Data Cleaning]
   date: 2025-10-10
+  
+- title: AFL Season 2026 - Simulation App
+  path: https://rexapps.shinyapps.io/AFLSim2026/
+  image: images/as.png
+  description: >
+    XGBoost model of the 2026 regular home and away season with GenElo, Team Attack/Defence Rating, Player Rating (Individual player 10gma) and Travel distance as inputs.
+    Static input Monte Carlo simulation for the season with prediction uncertainty increasing with time to the game. Team ability inputs and uncertainty is user adjustable.
+    Fixture difficulty by Elo and travel difference included.
+  categories: [R, Machine Learning, Statistical Modelling, Shiny, Monte Carlo]
+  date: 2026-01-31
 
 - title: Brownlow Medal Model
   path: https://rexcarruthers.github.io/Website/BLModel/
   image: images/bl.png
   description: >
     This post walks through the full workflow for building an ordinal regression model with random effects to predict the Brownlow Medal.
-    Using AFL data from multiple sources, we clean and merge player-game statistics before estimating player-specific biases through a mixed model.
+    Using AFL data from fitzRoy R package, player-game are used to estimate player-specific biases through a mixed model.
     These random intercepts are then incorporated into an ordinal model to generate vote probabilities for every match.
-    Finally, we run Monte Carlo simulations to recreate the umpire voting process and estimate each player’s chances of winning.
-    Whether you're interested in AFL analytics or statistical modelling, this tutorial provides a clear, practical guide from raw data to simulated outcomes.
+    Monte Carlo simulations are used to recreate the umpire voting process and estimate each player’s chances of winning.
   categories: [R, Machine Learning, Statistical Modelling]
   date: 2025-08-01
   
@@ -26,7 +32,7 @@
   path: https://rexapps.shinyapps.io/BetApp/
   image: images/gr.png
   description: >
-    Fun app to bet on a gender reveal or any two horse race. The odds update with each bet to show the current sentiment and attempt to balance the bets.
+    Fun app to bet on a gender reveal or any two horse race. The odds update with each bet to show the current betting sentiment and naively balances the odds.
     Very open to market manipulation with no overround or if the odds are actually known to be 50/50.
   categories: [R, Shiny, Market Making]
   date: 2025-11-26
@@ -47,6 +53,18 @@
   image: images/ss.png
   description: >
     App to screen ASX stocks with data downloaded from Yahoo Finance using the yfiance Python package.
-    Currently just a proof of concept work in progress.
+    Currently just a proof of concept - work in progress.
   categories: [R, Shiny, Python]
   date: 2020-11-26
+  
+- title: Habit Tracking Retro Web App
+  path: https://retro-tracker-one.vercel.app/
+  image: images/ht.png
+  description: >
+    A fitness and habit tracking PWA built with React, TypeScript, and Supabase.
+    Inspired by the "cassette futurism" aesthetic of Alien and Blade Runner, it features an authentic CRT terminal interface with amber phosphor glow effects and scanlines.
+    CSS and aesthtic taken from this repo https://github.com/Imetomi/retro-futuristic-ui-design.
+    The offline-first architecture uses localStorage for instant responsiveness, syncing seamlessly to the cloud when online.
+    Can be installed as a native app on any device—no app store required.
+  categories: [CSS, Typescript, React, SQL]
+  date: 2026-01-01
