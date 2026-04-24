@@ -1,16 +1,244 @@
 /*-- scss:defaults --*/
 
-// Sass Variables
 // https://quarto.org/docs/output-formats/html-themes.html#sass-variables
 
 /* Fonts */
 $font-family-sans-serif: "Source Sans Pro", -apple-system, "system-ui", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 $font-size-root: 17px;
 
-// Base document colors
-$body-bg: #181818;
-$body-color: #ccc;
-$link-color: #75AADB;
+/* Palette */
+$bg:          #0F1014;
+$surface:     #17181E;
+$surface-2:   #1E2029;
+$border:      #2A2D38;
+$text:        #E7E8EC;
+$muted:       #9097A5;
+$accent:      #8B8CFF;
+$accent-hi:   #A8A9FF;
+
+/* Base document colors */
+$body-bg:             $bg;
+$body-color:          $text;
+$headings-color:      #C9CCD2;
+$link-color:          $accent;
+$link-hover-color:    $accent-hi;
+
+/* Borders / dividers */
+$border-color:        $border;
+$hr-color:            $border;
+
+/* Navbar */
+$navbar-bg:           #1A1B2E;
+$navbar-fg:           $text;
+$navbar-hl:           $accent;
+
+/* Cards & listings */
+$card-bg:             $surface;
+$card-border-color:   $border;
+$card-cap-bg:         $surface-2;
+
+/* Code */
+$code-bg:             $surface-2;
+$code-color:          $accent-hi;
+$pre-bg:              $surface-2;
+$pre-color:           $text;
+
+/* Tables */
+$table-border-color:       $border;
+$table-striped-bg:         rgba(255, 255, 255, 0.02);
+$table-hover-bg:           rgba(139, 140, 255, 0.06);
+
+/* Blockquotes */
+$blockquote-border-color:  $accent;
+
+/* Inputs / form controls */
+$input-bg:                 $surface-2;
+$input-color:              $text;
+$input-border-color:       $border;
+$input-placeholder-color:  $muted;
+
+
+/*-- scss:rules --*/
+
+// Listing tiles (blog + projects)
+.quarto-listing .quarto-post,
+.quarto-listing .card,
+.quarto-post.image-left,
+div.quarto-post {
+  background-color: #17181E;
+  border: 1px solid #2A2D38;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #8B8CFF;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .listing-title,
+  .listing-title a {
+    color: #E7E8EC;
+  }
+
+  .listing-subtitle,
+  .listing-description,
+  .listing-date,
+  .listing-categories {
+    color: #9097A5;
+  }
+
+  .listing-category {
+    background-color: #1E2029;
+    border: 1px solid #2A2D38;
+    color: #9097A5;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.8em;
+
+    &:hover {
+      color: #A8A9FF;
+      border-color: #8B8CFF;
+    }
+  }
+}
+
+// Navbar
+.navbar {
+  background-color: #1A1B2E;
+  border-bottom: 1px solid #2A2D38;
+
+  .navbar-brand,
+  .navbar-title {
+    color: #E7E8EC;
+  }
+
+  // Site logo (black-on-transparent PNG) — invert so it reads on dark bg
+  .navbar-logo {
+    filter: invert(0.85);
+  }
+
+  .nav-link {
+    color: #E7E8EC;
+    position: relative;
+
+    &:hover,
+    &.active {
+      color: #A8A9FF;
+    }
+
+    &.active::after {
+      content: "";
+      position: absolute;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: 4px;
+      height: 2px;
+      background: #8B8CFF;
+      border-radius: 2px;
+    }
+  }
+}
+
+// About-page profile image (black-on-transparent silhouette) — invert in dark mode
+.quarto-about-jolla .about-entity img,
+.quarto-about-trestles .about-entity img,
+.quarto-about-solana .about-entity img,
+.quarto-about-marquee .about-entity img,
+.about-contents .about-image,
+img.about-image {
+  filter: invert(0.85);
+}
+
+// About / home page social links
+.about-link {
+  color: #E7E8EC;
+
+  &:hover {
+    color: #A8A9FF;
+  }
+}
+
+.about-entity .about-links .about-link {
+  border: 1px solid #2A2D38;
+  background-color: #17181E;
+
+  &:hover {
+    border-color: #8B8CFF;
+  }
+}
+
+// Footer
+.nav-footer,
+.page-footer,
+footer {
+  color: #9097A5;
+  border-top: 1px solid #2A2D38;
+
+  a {
+    color: #9097A5;
+
+    &:hover {
+      color: #A8A9FF;
+    }
+  }
+}
 
 // Code blocks
-$code-block-bg-alpha: -.9;
+pre,
+pre.sourceCode,
+div.sourceCode {
+  background-color: #1E2029 !important;
+  border: 1px solid #2A2D38;
+  border-radius: 6px;
+}
+
+code:not(pre code) {
+  background-color: #1E2029;
+  color: #A8A9FF;
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+
+// Tables
+table,
+.table {
+  color: #E7E8EC;
+  border-color: #2A2D38;
+
+  th {
+    color: #E7E8EC;
+    border-bottom-color: #2A2D38;
+  }
+
+  td {
+    border-top-color: #2A2D38;
+  }
+}
+
+// Blockquotes
+blockquote,
+.blockquote {
+  border-left: 4px solid #8B8CFF;
+  background-color: #17181E;
+  color: #E7E8EC;
+  padding: 0.75rem 1rem;
+  border-radius: 0 6px 6px 0;
+}
+
+// Horizontal rules
+hr {
+  border-color: #2A2D38;
+  opacity: 1;
+}
+
+// Subtitle / muted text on the home page
+.subtitle,
+.quarto-title .subtitle,
+.quarto-about-jolla .about-subtitle,
+.quarto-about-trestles .about-subtitle {
+  color: #9097A5;
+}
