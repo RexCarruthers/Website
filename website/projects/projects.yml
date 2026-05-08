@@ -1,3 +1,19 @@
+- title: Masters Range Dispersion Analysis
+  path: https://rexcarruthers.github.io/Website/rangestory/
+  image: images/mg.png
+  description: >
+    Scraped the range data from before and during the 2026 Masters golf tournament, created a lateral dispersion metric for each player and compared it to their finishing position.
+  categories: [R, Javascript, Clustering, Web Scraping]
+  date: 2026-05-08
+
+- title: AFL Boids Simulation
+  path: https://rexcarruthers.github.io/Website/Boids/
+  image: images/bo.png
+  description: >
+    AFL 2D simulation using the Boids model.
+  categories: [R, Javascript, Simulation]
+  date: 2025-05-08
+
 - title: Greyhound Barrier Analysis
   path: https://rexcarruthers.github.io/Website/Greyhound/
   image: images/gh.png
