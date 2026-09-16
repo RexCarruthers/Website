@@ -1653,8 +1653,51 @@ if (GREENS.some((g) => g.stimpMeasured === false)) {
 $('#f-src').textContent = DATA.meta.tournament + ' · ' + DATA.meta.course +
   ' · grid 0.25 m · RK4 at 5 ms · built ' + DATA.meta.generated;
 
+// Deep links: #hole=17&pin=2&map=p3&ball=12.4,30.1 (pin is 1-based or a label; map is
+// relief, p1, p3 or exp; ball is metres in the green's grid frame). The hash is rewritten as
+// the reader is used, so the address bar is always a link to what is on screen.
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  const hole = q.get('hole');
+  if (hole != null) {
+    const g = GREENS.find((x) => String(x.hole != null ? x.hole : x.id) === String(+hole));
+    if (g) { S.green = g.id; S.pin = 0; S.ball = null; S.sol = null; S.layup = null; }
+  }
+  const pin = q.get('pin');
+  if (pin != null) {
+    const pins = curG().pins;
+    let i = pins.findIndex((p) => p.label === pin);
+    if (i < 0 && +pin >= 1 && +pin <= pins.length) i = +pin - 1;
+    if (i >= 0) S.pin = i;
+  }
+  const map = q.get('map');
+  if (map && (map === 'relief' || SURF_LABEL[map]) && (map === 'relief' || MODEL)) S.surface = map;
+  const ball = (q.get('ball') || '').split(',').map(Number);
+  return ball.length === 2 && ball.every(isFinite) ? { x: ball[0], y: ball[1] } : null;
+}
+let hashTimer;
+function writeHash() {
+  clearTimeout(hashTimer);
+  hashTimer = setTimeout(() => {
+    const g = curG();
+    let h = 'hole=' + (g.hole != null ? g.hole : g.id) + '&pin=' + (S.pin + 1) + '&map=' + S.surface;
+    if (S.ball) h += '&ball=' + S.ball.x.toFixed(2) + ',' + S.ball.y.toFixed(2);
+    try { history.replaceState(null, '', '#' + h); } catch (e) { /* sandboxed frame */ }
+  }, 150);
+}
+const linkBall = readHash();
+
 buildGreenSel(); buildPins(); buildSurf(); buildShow(); buildPace(); buildStimp(); buildLegend();
 render(); readout();
+if (linkBall) { S.ball = linkBall; solveNow(); }
+// every control ends in render(), so wrapping it is the one place to keep the hash current
+const renderInner = render;
+render = function () { renderInner.apply(this, arguments); writeHash(); };
+window.addEventListener('hashchange', () => {
+  const b = readHash();
+  fillGreens(); buildPins(); buildSurf(); buildStimp(); buildLegend(); render(); readout();
+  if (b) { S.ball = b; solveNow(); }
+});
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 120); });
 })();
 </script>
