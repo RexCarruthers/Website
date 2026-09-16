@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-</head>
-<body>
 <title>East Lake Green Reader</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +34,6 @@
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
   --contour: rgba(200,235,222,.26); --contour-idx: rgba(200,235,222,.5);
   --contour-halo: rgba(0,0,0,.35); --boundary: #A6CEBF;
-}
 }
 
 * { box-sizing: border-box; }
@@ -132,8 +129,53 @@ input[type=range] { accent-color: var(--line); width: 130px; }
 footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--rule);
          color: var(--ink-3); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 6px 20px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-</style>
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
+/* Phones, portrait: bigger type and touch targets, less edge padding. */
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .sheet { padding: 14px 12px 40px; }
+  .lbl { font-size: 13px; }
+  .masthead .sub { font-size: 15.5px; }
+  .hint { font-size: 15px; }
+  select { font-size: 15px; padding: 8px 8px; }
+  .ctl { gap: 8px; padding: 10px; }
+  .chip { font-size: 14px; padding: 8px 11px; }
+  .plate-wrap { padding: 6px; }
+  .hud { font-size: 12.5px; }
+  .busy { font-size: 14px; }
+  .key { font-size: 14px; }
+  .stat b { font-size: 19px; }
+  .stat small { font-size: 12.5px; }
+  .mdl .lbl { font-size: 12px; }
+  .row { font-size: 15px; padding: 7px 12px; }
+  .empty { font-size: 15px; }
+  .note h3 { font-size: 17px; }
+  .note p { font-size: 15.5px; }
+  .note code { font-size: 14px; }
+  footer { font-size: 13px; }
+}
+
+/* Phones, landscape: the green beside its controls, sized to the screen height. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sheet { padding: 8px max(12px, env(safe-area-inset-right)) 40px max(12px, env(safe-area-inset-left)); }
+  header.masthead { grid-template-columns: minmax(0,1fr) auto; align-items: center;
+                    border-top-width: 1px; padding: 6px 0 8px; }
+  h1 { font-size: 22px; margin: 0; }
+  .masthead .lbl, .masthead .sub, .masthead .hint { display: none; }
+  .work { margin-top: 10px; }
+  main.panel { display: grid; grid-template-columns: minmax(0,1fr) minmax(210px, 36%);
+               grid-template-rows: repeat(4, auto) 1fr; align-items: start; }
+  main.panel > .plate-wrap { grid-column: 1; grid-row: 1 / span 5; padding: 6px; }
+  main.panel > .ctl { grid-column: 2; padding: 8px 8px 0; gap: 6px; }
+  main.panel > .legend { grid-column: 1 / -1; }
+  .chip { font-size: 13px; padding: 6px 9px; }
+  select { font-size: 14px; padding: 6px; }
+  .lbl { font-size: 12px; }
+}
+</style>
+</head>
+<body>
 <div class="sheet">
   <header class="masthead">
     <div>
@@ -893,9 +935,13 @@ const MAX_H = 620;
 function layout() {
   const f = field(S.green), pad = 1.2;
   const wM = (f.ext.x1 - f.ext.x0) + 2 * pad, hM = (f.ext.y1 - f.ext.y0) + 2 * pad;
-  const W = Math.max(320, Math.floor(cv.parentElement.getBoundingClientRect().width));
+  // The canvas is CSS width 100%, so W must be the box's real width: a floor above it would
+  // stretch the drawing and throw taps off on a phone.
+  const W = Math.max(160, Math.floor(cv.parentElement.getBoundingClientRect().width));
+  // never taller than the screen, so a phone in landscape sees the whole green at once
+  const maxH = Math.min(MAX_H, Math.max(200, window.innerHeight - 24));
   let scale = W / wM;
-  if (hM * scale > MAX_H) scale = MAX_H / hM;
+  if (hM * scale > maxH) scale = maxH / hM;
   const H = Math.round(hM * scale), offX = (W - wM * scale) / 2;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px';

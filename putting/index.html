@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-</head>
-<body>
 <title>How the Putting Model Works</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,6 +69,8 @@ section.step {
   padding: 46px 0 0; border-top: 1px solid var(--rule-soft); margin-top: 46px;
 }
 section.step:first-of-type { border-top: 0; margin-top: 0; }
+/* grid items default to min-width:auto and would grow to a wide chart instead of scrolling it */
+section.step > * { min-width: 0; }
 .stepno {
   font-family: "Barlow Condensed", sans-serif; font-size: 42px; font-weight: 600;
   line-height: 1; color: var(--accent); letter-spacing: -.01em;
@@ -161,13 +161,42 @@ footer {
 }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (max-width: 720px) {
   :root { --step: 44px; }
   section.step { gap: 0 16px; }
   .stepno { font-size: 30px; }
 }
+/* Phones: the step number sits above its section rather than beside it, and the charts keep
+   a readable size, scrolling sideways inside their own box instead of shrinking. */
+@media (max-width: 560px) {
+  body { font-size: 16.5px; }
+  .wrap { padding: 0 16px 64px; }
+  header.top { padding: 36px 0 22px; }
+  .lbl { font-size: 11.5px; }
+  .lede { font-size: 18px; }
+  .facts { font-size: 13.5px; gap: 4px 24px; }
+  section.step { grid-template-columns: 1fr; padding-top: 34px; margin-top: 34px; }
+  .stepno { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .stepno small { display: inline; margin-top: 0; font-size: 11px; }
+  .stepno.aside { border-top: 0; padding-top: 0; }
+  .eg { padding-left: 14px; }
+  .eg p, .caveat p, .row { font-size: 15.5px; }
+  .row span:last-child { font-size: 14px; white-space: normal; text-align: right; }
+  figcaption { font-size: 15px; }
+  .key { font-size: 14px; }
+  table { font-size: 14.5px; }
+  th { font-size: 11.5px; }
+  th:first-child, td:first-child { min-width: 16ch; }
+  .scroller .plot { min-width: 600px; }
+  .caveat { padding: 16px; }
+  a.go { font-size: 24px; }
+  .cta p { font-size: 15.5px; }
+  footer { font-size: 12.5px; }
+}
 </style>
-
+</head>
+<body>
 <div class="wrap">
 
 <header class="top">
