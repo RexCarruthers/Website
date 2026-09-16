@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>How the Putting Model Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* Dark only, and deliberately: the readers this page introduces are dark, the heat ramps were
+   tuned against that ground, and the two should read as one project. */
+:root {
+  color-scheme: dark;
+  --paper:  #101513;
+  --plate:  #171E1B;
+  --sunk:   #0B100E;
+  --rule:   #2C3733;
+  --rule-soft: #212A27;
+  --ink:    #E2E8E4;
+  --ink-2:  #9BA8A2;
+  --ink-3:  #6E7B75;
+
+  --line:   #6E9DF5;
+  --firm:   #D9962F;
+  --soft:   #5DBE8E;
+  --pin:    #E06B5A;
+  --noline: #79837D;
+  --accent: #78AF9C;
+
+  --step: 68px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Barlow", system-ui, -apple-system, sans-serif;
+  font-size: 16px; line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px 96px; }
+.col { max-width: 68ch; }
+
+.lbl {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0;
+}
+
+header.top { padding: 62px 0 26px; border-bottom: 1px solid var(--rule); }
+h1 {
+  font-family: "Barlow Condensed", "Barlow", sans-serif;
+  font-size: clamp(38px, 6vw, 66px); line-height: .98; font-weight: 700;
+  letter-spacing: -.005em; margin: 16px 0 18px; max-width: 16ch; text-wrap: balance;
+}
+.lede { font-size: 19px; line-height: 1.55; color: var(--ink-2); margin: 0; max-width: 62ch; }
+.lede b { color: var(--ink); font-weight: 600; }
+.facts {
+  display: flex; flex-wrap: wrap; gap: 0 40px; margin: 26px 0 0;
+  font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink-2);
+}
+.facts b { color: var(--ink); font-weight: 500; }
+
+section.step {
+  display: grid; grid-template-columns: var(--step) 1fr; gap: 0 26px;
+  padding: 46px 0 0; border-top: 1px solid var(--rule-soft); margin-top: 46px;
+}
+section.step:first-of-type { border-top: 0; margin-top: 0; }
+.stepno {
+  font-family: "Barlow Condensed", sans-serif; font-size: 42px; font-weight: 600;
+  line-height: 1; color: var(--accent); letter-spacing: -.01em;
+}
+.stepno small { display: block; font-family: "IBM Plex Mono", monospace; font-size: 9.5px;
+  letter-spacing: .14em; color: var(--ink-3); margin-top: 6px; font-weight: 400; }
+/* the numbers mark the pipeline; what follows it is an aside, not a seventh step */
+.stepno.aside { border-top: 2px solid var(--rule); padding-top: 10px; }
+.stepno.aside small { margin-top: 0; }
+h2 {
+  font-family: "Barlow Condensed", sans-serif; font-size: clamp(25px, 3.2vw, 33px);
+  font-weight: 600; line-height: 1.1; margin: 0 0 14px; text-wrap: balance;
+}
+h3 { font-size: 14px; font-weight: 600; margin: 26px 0 8px; }
+p { margin: 0 0 15px; }
+p:last-child { margin-bottom: 0; }
+strong { font-weight: 600; }
+em { font-style: italic; color: var(--ink); }
+code {
+  font-family: "IBM Plex Mono", monospace; font-size: .87em;
+  background: var(--sunk); padding: 1.5px 5px; border-radius: 2px; color: var(--ink);
+}
+
+.eg { border-left: 2px solid var(--accent); padding: 2px 0 2px 20px; margin: 22px 0; max-width: 62ch; }
+.eg .lbl { color: var(--accent); margin-bottom: 7px; }
+.eg p { font-size: 15px; color: var(--ink-2); }
+.eg b { color: var(--ink); font-weight: 600; }
+
+.rows { margin: 18px 0 0; max-width: 60ch; }
+.row {
+  display: flex; justify-content: space-between; gap: 18px; padding: 7px 0;
+  border-bottom: 1px solid var(--rule-soft); font-size: 14.5px;
+}
+.row:first-child { border-top: 1px solid var(--rule-soft); }
+.row span:first-child { color: var(--ink-2); }
+.row span:last-child {
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  font-size: 13px; white-space: nowrap;
+}
+
+/* the model input tables */
+.scroller { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 14px;
+  font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 14px 7px 0; border-bottom: 1px solid var(--rule-soft);
+  white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; white-space: normal; min-width: 21ch; }
+th { color: var(--ink-3); font-weight: 500; font-size: 10.5px; letter-spacing: .07em;
+  text-transform: uppercase; border-bottom-color: var(--rule); }
+td.n { font-family: "IBM Plex Mono", monospace; }
+td.sig { color: var(--accent); }
+td.dim { color: var(--ink-3); }
+
+figure { margin: 26px 0 0; }
+figcaption { font-size: 14px; color: var(--ink-2); margin-top: 12px; max-width: 64ch; }
+figcaption b { color: var(--ink); font-weight: 600; }
+.plot { width: 100%; height: auto; display: block; overflow: visible; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 12.5px;
+  color: var(--ink-2); margin: 0 0 10px; align-items: center; }
+.key i { width: 20px; height: 2.5px; border-radius: 2px; display: inline-block;
+  margin-right: 7px; vertical-align: middle; }
+.key i.sq { width: 11px; height: 11px; border-radius: 2px; }
+
+.ramp { display: flex; align-items: center; gap: 12px; margin: 16px 0 6px; max-width: 62ch; }
+.ramp .bar { flex: 1; height: 13px; border-radius: 2px;
+  background: linear-gradient(90deg, #3E3789, #3559A6, #2E86B4, #27A794, #54B96E, #98C654, #E6C452, #E48B3E, #D04E34); }
+.ramp .lbl { margin: 0; white-space: nowrap; }
+
+.caveat { background: var(--plate); border: 1px solid var(--rule-soft); padding: 20px 22px;
+  margin: 22px 0 0; max-width: 66ch; }
+.caveat p { font-size: 14.5px; color: var(--ink-2); }
+.caveat p:first-of-type { margin-top: 0; }
+.caveat b { color: var(--ink); font-weight: 600; }
+
+.cta { margin: 56px 0 0; padding: 30px 0 0; border-top: 1px solid var(--rule); }
+a.go {
+  display: inline-flex; align-items: center; gap: 12px; text-decoration: none;
+  font-family: "Barlow Condensed", sans-serif; font-size: 26px; font-weight: 600;
+  color: var(--ink); border-bottom: 2px solid var(--accent); padding-bottom: 3px;
+}
+a.go:hover { color: var(--accent); }
+a.go span { font-family: "IBM Plex Mono", monospace; font-size: 15px; color: var(--accent); }
+.cta p { color: var(--ink-2); font-size: 14.5px; margin: 14px 0 0; max-width: 58ch; }
+
+footer {
+  margin-top: 58px; padding-top: 20px; border-top: 1px solid var(--rule);
+  font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-3); line-height: 1.85;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 720px) {
+  :root { --step: 44px; }
+  section.step { gap: 0 16px; }
+  .stepno { font-size: 30px; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="lbl">Putting outcome model &middot; 2026 PGA Tour season</p>
+  <h1>How the Putting Model Works</h1>
+  <p class="lede">A ball is rolled across a 3D survey of each green to find the line and pace
+    that hole a putt. Those results feed two statistical models, fitted on the 2026 season's
+    putts: <b>the chance of one putt</b>, and <b>the chance of three or more</b>. Six steps,
+    in the order they run.</p>
+  <p class="facts">
+    <span><b>312,183</b> putts</span>
+    <span><b>558</b> greens</span>
+    <span><b>31</b> courses</span>
+    <span><b>2,166</b> hole locations</span>
+  </p>
+</header>
+
+<!-- 1 -->
+<section class="step">
+  <div class="stepno">1<small>SURFACE</small></div>
+  <div>
+    <h2>Start with the real green</h2>
+    <div class="col">
+      <p>Each green is a surveyed mesh of triangles with points about 35 centimetres apart.
+        It is sampled onto a grid of heights every <strong>25 centimetres</strong>. Heights and
+        slopes between grid points are interpolated with smooth (bicubic) curves, so the slope
+        changes continuously. No smoothing is applied.</p>
+
+      <figure>
+        <div class="scroller">
+        <svg class="plot" viewBox="0 0 700 210" role="img"
+             aria-label="A cross-section through a green. The surveyed surface is a smooth undulating profile; dots mark the height samples taken every 25 centimetres.">
+          <rect x="60" y="30" width="600" height="150" fill="var(--sunk)"/>
+          <path d="M60,110 L90,127 L120,136 L150,135 L180,130 L210,128 L240,132 L270,137 L300,136 L330,125 L360,107 L390,92 L420,85 L450,86 L480,90 L510,92 L540,87 L570,82 L600,84 L630,96 L660,113 L660,180 L60,180 Z"
+                fill="var(--accent)" fill-opacity="0.13"/>
+          <path d="M60,110 L90,127 L120,136 L150,135 L180,130 L210,128 L240,132 L270,137 L300,136 L330,125 L360,107 L390,92 L420,85 L450,86 L480,90 L510,92 L540,87 L570,82 L600,84 L630,96 L660,113"
+                fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+          <g fill="var(--ink)">
+            <circle cx="60" cy="110" r="2.6"/><circle cx="90" cy="127" r="2.6"/>
+            <circle cx="120" cy="136" r="2.6"/><circle cx="150" cy="135" r="2.6"/>
+            <circle cx="180" cy="130" r="2.6"/><circle cx="210" cy="128" r="2.6"/>
+            <circle cx="240" cy="132" r="2.6"/><circle cx="270" cy="137" r="2.6"/>
+            <circle cx="300" cy="136" r="2.6"/><circle cx="330" cy="125" r="2.6"/>
+            <circle cx="360" cy="107" r="2.6"/><circle cx="390" cy="92" r="2.6"/>
+            <circle cx="420" cy="85" r="2.6"/><circle cx="450" cy="86" r="2.6"/>
+            <circle cx="480" cy="90" r="2.6"/><circle cx="510" cy="92" r="2.6"/>
+            <circle cx="540" cy="87" r="2.6"/><circle cx="570" cy="82" r="2.6"/>
+            <circle cx="600" cy="84" r="2.6"/><circle cx="630" cy="96" r="2.6"/>
+            <circle cx="660" cy="113" r="2.6"/>
+          </g>
+          <g stroke="var(--rule)" stroke-width="1">
+            <line x1="60" y1="186" x2="90" y2="186"/>
+            <line x1="60" y1="182" x2="60" y2="190"/>
+            <line x1="90" y1="182" x2="90" y2="190"/>
+          </g>
+          <text x="98" y="190" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace"
+                font-size="11">25 cm between samples</text>
+          <text x="60" y="22" fill="var(--ink-2)" font-family="Barlow, sans-serif" font-size="12.5">
+            A slice through one green, side on</text>
+        </svg>
+        </div>
+        <figcaption>A slice through a green: heights sampled on the grid, with a smooth surface
+          between them.</figcaption>
+      </figure>
+
+      <p style="margin-top:22px">Ball and hole positions come from the tour's shot tracking,
+        which uses a different coordinate system from the green surveys. Each course gets a
+        fitted rotation and shift to align the two. No scaling is applied.</p>
+      <div class="eg">
+        <p class="lbl">Alignment error</p>
+        <p>Average vertical gap between tracked positions and the surveyed surface, per course:
+          <b>1.3 to 10.7 millimetres</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="step">
+  <div class="stepno">2<small>SOLVE</small></div>
+  <div>
+    <h2>Find the line that holes it</h2>
+    <div class="col">
+      <p>The ball's path is simulated in 5 millisecond steps. Slope pushes it sideways and
+        rolling friction slows it. Friction is set from the green speed (Stimpmeter reading)
+        measured at each tournament. The ball only drops if it reaches the hole slowly enough:
+        at most <strong>1.31 metres per second</strong> through the centre, less off-centre.</p>
+      <p>For each putt the solver finds:</p>
+      <div class="rows">
+        <div class="row"><span><strong>Pace</strong></span><span>speed that would finish 40 cm past the hole</span></div>
+        <div class="row"><span><strong>Line</strong></span><span>aim that holes it at that pace</span></div>
+        <div class="row"><span><strong>Window</strong></span><span>range of aims that still hole it, in degrees</span></div>
+      </div>
+      <p style="margin-top:15px">Aims are searched up to 60 degrees either side of straight.</p>
+
+      <figure>
+        <p class="key">
+          <span><i style="background:var(--line)"></i>The line that holes it</span>
+          <span><i style="background:var(--ink-3);opacity:.7"></i>Straight at the hole</span>
+          <span><i class="sq" style="background:#A28FD4;opacity:.45"></i>Every aim that still drops</span>
+        </p>
+        <div class="scroller">
+        <svg class="plot" viewBox="0 0 700 300" role="img"
+             aria-label="Plan view of a breaking putt. A dashed straight line runs from ball to hole; the curving solid line is the one that actually holes it, aimed well left; a shaded wedge shows the narrow band of aims that still drop.">
+          <path d="M70,276 C 150,150 250,60 420,42 C 560,28 650,90 652,170 C 654,250 520,288 330,288 C 190,288 110,286 70,276 Z"
+                fill="var(--plate)" stroke="var(--rule)" stroke-width="1.5"/>
+          <path d="M120,236 C 250,196 400,124 556,106 L556,120 C 404,140 258,212 128,248 Z"
+                fill="#A28FD4" fill-opacity="0.30"/>
+          <line x1="120" y1="240" x2="556" y2="112" stroke="var(--ink-3)" stroke-width="1.6"
+                stroke-dasharray="5 5" opacity="0.8"/>
+          <path d="M120,240 C 250,200 400,128 556,112" fill="none" stroke="var(--line)"
+                stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="120" cy="240" r="6" fill="var(--ink)"/>
+          <circle cx="556" cy="112" r="8.5" fill="var(--sunk)" stroke="var(--pin)" stroke-width="2.6"/>
+          <circle cx="556" cy="112" r="2.6" fill="var(--pin)"/>
+          <text x="120" y="266" fill="var(--ink-2)" font-family="Barlow, sans-serif"
+                font-size="13" text-anchor="middle">Ball</text>
+          <text x="566" y="92" fill="var(--pin)" font-family="Barlow, sans-serif" font-size="13">Hole</text>
+          <text x="300" y="150" fill="var(--line)" font-family="Barlow, sans-serif" font-size="13"
+                transform="rotate(-16 300 150)">aim here, and the slope brings it back</text>
+        </svg>
+        </div>
+        <figcaption>A breaking putt. The shaded band is the window: every aim that still holes
+          it at the solved pace. Downhill and sidehill putts have narrower windows than uphill
+          putts of the same length.</figcaption>
+      </figure>
+
+      <div class="eg">
+        <p class="lbl">A real putt, Pebble Beach, 17th green</p>
+        <div class="rows">
+          <div class="row"><span>Distance</span><span>7.21 m</span></div>
+          <div class="row"><span>Aim, away from straight</span><span>2.56 m left</span></div>
+          <div class="row"><span>Window of aims that drop</span><span>0.27 degrees</span></div>
+          <div class="row"><span>Speed off the putter</span><span>1.83 m/s</span></div>
+          <div class="row"><span>Struck 5% firm, finishes</span><span>0.94 m past</span></div>
+          <div class="row"><span>Struck 5% soft, finishes</span><span>0.35 m short</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="step">
+  <div class="stepno">3<small>HOLING</small></div>
+  <div>
+    <h2>Will it go in?</h2>
+    <div class="col">
+      <p>The solver's outputs are inputs to a statistical model (a generalised additive model,
+        which fits a flexible curve for each input) predicting whether each of the season's
+        putts was holed. It is fitted on the 310,623 putts where the solver found a line.</p>
+
+      <figure>
+        <div class="scroller">
+        <svg class="plot" viewBox="0 0 700 300" role="img"
+             aria-label="Observed make rate against distance. It falls from 100 percent inside half a metre to about 5 percent at 10 metres.">
+          <g stroke="var(--rule-soft)" stroke-width="1">
+            <line x1="70" y1="250" x2="660" y2="250"/><line x1="70" y1="208" x2="660" y2="208"/>
+            <line x1="70" y1="166" x2="660" y2="166"/><line x1="70" y1="124" x2="660" y2="124"/>
+            <line x1="70" y1="82" x2="660" y2="82"/><line x1="70" y1="40" x2="660" y2="40"/>
+          </g>
+          <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="end">
+            <text x="60" y="254">0%</text><text x="60" y="212">20%</text>
+            <text x="60" y="170">40%</text><text x="60" y="128">60%</text>
+            <text x="60" y="86">80%</text><text x="60" y="44">100%</text>
+          </g>
+          <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">
+            <text x="70" y="272">0</text><text x="168" y="272">2 m</text>
+            <text x="266" y="272">4 m</text><text x="365" y="272">6 m</text>
+            <text x="463" y="272">8 m</text><text x="562" y="272">10 m</text>
+            <text x="660" y="272">12 m</text>
+          </g>
+          <text x="365" y="292" fill="var(--ink-2)" font-family="Barlow, sans-serif" font-size="12"
+                text-anchor="middle">Length of the putt</text>
+          <polyline points="88,40 113,44 138,72 162,108 187,137 211,153 261,185 310,201 359,213 457,229 556,238 654,240"
+                    fill="none" stroke="var(--line)" stroke-width="2.8"
+                    stroke-linejoin="round" stroke-linecap="round"/>
+          <g fill="var(--line)">
+            <circle cx="88" cy="40" r="3.4"/><circle cx="113" cy="44" r="3.4"/>
+            <circle cx="138" cy="72" r="3.4"/><circle cx="162" cy="108" r="3.4"/>
+            <circle cx="187" cy="137" r="3.4"/><circle cx="211" cy="153" r="3.4"/>
+            <circle cx="261" cy="185" r="3.4"/><circle cx="310" cy="201" r="3.4"/>
+            <circle cx="359" cy="213" r="3.4"/><circle cx="457" cy="229" r="3.4"/>
+            <circle cx="556" cy="238" r="3.4"/><circle cx="654" cy="240" r="3.4"/>
+          </g>
+          <line x1="187" y1="137" x2="187" y2="250" stroke="var(--accent)" stroke-width="1"
+                stroke-dasharray="3 3"/>
+          <text x="194" y="246" fill="var(--accent)" font-family="IBM Plex Mono, monospace"
+                font-size="11">half go in at 2.6 m</text>
+        </svg>
+        </div>
+        <figcaption>Observed make rate by distance, all putts. Distance is the dominant input;
+          the others adjust this curve.</figcaption>
+      </figure>
+
+      <h3>Inputs</h3>
+      <p>Distance and window enter as one combined surface, so the effect of the window can
+        differ by distance. The model also includes adjustments for each green, hole location
+        and tournament; these are left out of the maps.</p>
+
+      <div class="scroller">
+      <table>
+        <thead><tr>
+          <th>Input</th><th>Shape</th><th>Strength</th><th>Evidence</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Distance and window, joined</td><td class="n">13.1</td><td class="n">32,100</td><td class="n sig">overwhelming</td></tr>
+          <tr><td>Average sideways slope along the line</td><td class="n">4.4</td><td class="n">39.5</td><td class="n sig">overwhelming</td></tr>
+          <tr><td>How fast the ball reaches the hole</td><td class="n">2.2</td><td class="n">20.7</td><td class="n sig">very strong</td></tr>
+          <tr><td>Net rise or fall, ball to hole</td><td class="n">4.2</td><td class="n">18.0</td><td class="n sig">strong</td></tr>
+          <tr><td>How much longer the curved path is</td><td class="n">2.9</td><td class="n">11.9</td><td class="n sig">moderate</td></tr>
+          <tr><td>Aim off straight, in hole widths</td><td class="n">1.0</td><td class="n">3.0</td><td class="n dim">weak</td></tr>
+          <tr><td>Aim off straight, as an angle</td><td class="n">1.0</td><td class="n">1.3</td><td class="n dim">none</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin-top:12px;font-size:13.5px;color:var(--ink-3);max-width:66ch">
+        Inputs are fitted as curves, so there is no single coefficient.
+        <strong>Shape</strong> is the effective degrees of freedom: 1 is a straight line, higher
+        is more curved. <strong>Strength</strong> is the chi-squared test statistic.
+        <strong>Evidence</strong> summarises its p-value.</p>
+
+      <div class="eg">
+        <p class="lbl">Performance</p>
+        <p>Tested on tournaments left out of fitting, log-loss (the standard error measure for
+          probability predictions) is <b>0.27%</b> lower than distance alone. Deviance
+          explained: <b>57.8%</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="step">
+  <div class="stepno">4<small>MISSING</small></div>
+  <div>
+    <h2>And if it misses?</h2>
+    <div class="col">
+      <p>The second model is fitted on the 118,351 putts that missed. It predicts whether
+        three or more putts were still needed from that position.</p>
+      <p>Each putt is re-simulated at 5% firmer and 5% softer than the solved pace, and the
+        distance from the hole where each finishes is an input. (Across 162,331 tracked putts,
+        tour players' median pace error is 9.8%.)</p>
+      <p>The soft result predicts three-putts; the firm result does not.</p>
+
+      <figure>
+        <p class="key">
+          <span><i style="background:var(--soft)"></i>Soft: how far short it leaves you</span>
+          <span><i style="background:var(--firm)"></i>Firm: how far past</span>
+        </p>
+        <div class="scroller">
+        <svg class="plot" viewBox="0 0 700 300" role="img"
+             aria-label="Chance of three or more putts against what a slightly mis-hit stroke leaves, on a 6 metre putt. The soft miss rises from 1.6 to 7.4 percent; the firm miss stays flat near 2 percent.">
+          <g stroke="var(--rule-soft)" stroke-width="1">
+            <line x1="70" y1="250" x2="660" y2="250"/><line x1="70" y1="197.5" x2="660" y2="197.5"/>
+            <line x1="70" y1="145" x2="660" y2="145"/><line x1="70" y1="92.5" x2="660" y2="92.5"/>
+            <line x1="70" y1="40" x2="660" y2="40"/>
+          </g>
+          <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="end">
+            <text x="60" y="254">0%</text><text x="60" y="201.5">2%</text>
+            <text x="60" y="149">4%</text><text x="60" y="96.5">6%</text><text x="60" y="44">8%</text>
+          </g>
+          <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">
+            <text x="115" y="272">0.2 m</text><text x="297" y="272">1.0 m</text>
+            <text x="410" y="272">1.5 m</text><text x="637" y="272">2.5 m</text>
+          </g>
+          <text x="365" y="292" fill="var(--ink-2)" font-family="Barlow, sans-serif" font-size="12"
+                text-anchor="middle">Where the mis-hit stroke leaves the ball, on a 6 metre putt</text>
+          <polyline points="115,207 184,195 297,167 410,133 637,56" fill="none"
+                    stroke="var(--soft)" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>
+          <polyline points="115,194 184,195 297,196 410,198 637,197" fill="none"
+                    stroke="var(--firm)" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>
+          <g fill="var(--soft)">
+            <circle cx="115" cy="207" r="3.6"/><circle cx="184" cy="195" r="3.6"/>
+            <circle cx="297" cy="167" r="3.6"/><circle cx="410" cy="133" r="3.6"/>
+            <circle cx="637" cy="56" r="3.6"/>
+          </g>
+          <g fill="var(--firm)">
+            <circle cx="115" cy="194" r="3.6"/><circle cx="184" cy="195" r="3.6"/>
+            <circle cx="297" cy="196" r="3.6"/><circle cx="410" cy="198" r="3.6"/>
+            <circle cx="637" cy="197" r="3.6"/>
+          </g>
+          <text x="637" y="42" fill="var(--soft)" font-family="IBM Plex Mono, monospace"
+                font-size="12" text-anchor="end">7.4%</text>
+          <text x="637" y="216" fill="var(--firm)" font-family="IBM Plex Mono, monospace"
+                font-size="12" text-anchor="end">2.0%</text>
+        </svg>
+        </div>
+        <figcaption>Model prediction for a 6 metre putt. As the soft finish goes from
+          20 centimetres to 2.5 metres from the hole, the chance of three or more rises from
+          <b>1.6% to 7.4%</b>. The firm finish has no effect.</figcaption>
+      </figure>
+
+      <h3>Inputs</h3>
+      <div class="scroller">
+      <table>
+        <thead><tr><th>Input</th><th>Shape</th><th>Strength</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Distance</td><td class="n">5.9</td><td class="n">360.7</td><td class="n sig">overwhelming</td></tr>
+          <tr><td>Distance from hole after a 5% soft stroke</td><td class="n">3.3</td><td class="n">110.4</td><td class="n sig">overwhelming</td></tr>
+          <tr><td>Distance from hole after a 5% firm stroke</td><td class="n">2.6</td><td class="n">4.9</td><td class="n dim">none</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="rows" style="margin-top:18px">
+        <div class="row"><span>Intercept</span><span>&minus;2.345 &plusmn; 0.108</span></div>
+        <div class="row"><span>5% firm stroke runs off the green (yes/no)</span><span>&minus;0.221 &plusmn; 0.153</span></div>
+      </div>
+      <p style="margin-top:12px;font-size:13.5px;color:var(--ink-3);max-width:66ch">
+        Coefficient &plusmn; standard error, on the log-odds scale (0 is no effect).</p>
+
+      <div class="eg">
+        <p class="lbl">Performance</p>
+        <p><b>4.0%</b> of missed putts needed three or more from that position. Tested on
+          tournaments left out of fitting, log-loss is <b>0.52%</b> lower than distance alone.
+          Deviance explained: <b>15.3%</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="step">
+  <div class="stepno">5<small>COMBINE</small></div>
+  <div>
+    <h2>Expected putts</h2>
+    <div class="col">
+      <p>The two models combine into expected putts, counting three or more as three:</p>
+      <p style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--ink);
+                background:var(--sunk);padding:14px 18px;border-radius:2px;max-width:50ch">
+        Expected = 2 &minus; chance of one &plus; chance of three or more</p>
+
+      <figure>
+        <p class="key">
+          <span><i class="sq" style="background:var(--line)"></i>One putt</span>
+          <span><i class="sq" style="background:var(--accent);opacity:.55"></i>Two putts</span>
+          <span><i class="sq" style="background:var(--pin)"></i>Three or more</span>
+        </p>
+        <div class="scroller">
+        <svg class="plot" viewBox="0 0 700 300" role="img"
+             aria-label="Stacked bars showing how the chance of one, two, and three or more putts changes with distance, from 1 metre to 18 metres.">
+          <g>
+            <rect x="70" y="53.8" width="66" height="186.2" fill="var(--line)"/>
+            <rect x="70" y="50.2" width="66" height="3.6" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="70" y="50.0" width="66" height="0.2" fill="var(--pin)"/>
+            <rect x="156" y="111.2" width="66" height="128.8" fill="var(--line)"/>
+            <rect x="156" y="50.4" width="66" height="60.8" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="156" y="50.0" width="66" height="0.4" fill="var(--pin)"/>
+            <rect x="242" y="152.6" width="66" height="87.4" fill="var(--line)"/>
+            <rect x="242" y="50.6" width="66" height="102.0" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="242" y="49.8" width="66" height="0.8" fill="var(--pin)"/>
+            <rect x="328" y="195.7" width="66" height="44.3" fill="var(--line)"/>
+            <rect x="328" y="51.9" width="66" height="143.8" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="328" y="50.0" width="66" height="1.9" fill="var(--pin)"/>
+            <rect x="414" y="221.2" width="66" height="18.8" fill="var(--line)"/>
+            <rect x="414" y="54.8" width="66" height="166.4" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="414" y="50.0" width="66" height="4.8" fill="var(--pin)"/>
+            <rect x="500" y="230.9" width="66" height="9.1" fill="var(--line)"/>
+            <rect x="500" y="63.7" width="66" height="167.2" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="500" y="50.0" width="66" height="13.7" fill="var(--pin)"/>
+            <rect x="586" y="236.2" width="66" height="3.8" fill="var(--line)"/>
+            <rect x="586" y="85.3" width="66" height="150.9" fill="var(--accent)" fill-opacity="0.55"/>
+            <rect x="586" y="50.0" width="66" height="35.3" fill="var(--pin)"/>
+          </g>
+          <line x1="70" y1="240" x2="652" y2="240" stroke="var(--rule)" stroke-width="1"/>
+          <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">
+            <text x="103" y="258">1 m</text><text x="189" y="258">2 m</text>
+            <text x="275" y="258">3 m</text><text x="361" y="258">5 m</text>
+            <text x="447" y="258">8 m</text><text x="533" y="258">12 m</text>
+            <text x="619" y="258">18 m</text>
+          </g>
+          <g fill="var(--ink)" font-family="IBM Plex Mono, monospace" font-size="12" text-anchor="middle">
+            <text x="103" y="282">1.02</text><text x="189" y="282">1.32</text>
+            <text x="275" y="282">1.54</text><text x="361" y="282">1.78</text>
+            <text x="447" y="282">1.93</text><text x="533" y="282">2.02</text>
+            <text x="619" y="282">2.17</text>
+          </g>
+          <text x="70" y="296" fill="var(--ink-3)" font-family="Barlow, sans-serif" font-size="11.5">
+            expected putts</text>
+          <text x="70" y="40" fill="var(--ink-2)" font-family="Barlow, sans-serif" font-size="12.5">
+            Chance of each outcome, by length of putt</text>
+        </svg>
+        </div>
+        <figcaption>Outcome shares and expected putts by distance. Expected putts passes
+          <b>2.00 at about 11 metres</b>. Counting three or more as three slightly understates
+          the longest putts.</figcaption>
+      </figure>
+
+      <h3>Map colours</h3>
+      <p>Every map uses the same fixed scale: 0 to 100% for probabilities, 1 to 3 for expected
+        putts. The same colour means the same value on every green.</p>
+      <div class="ramp">
+        <span class="lbl">1.0 putt / 0%</span><span class="bar"></span>
+        <span class="lbl">3.0 putts / 100%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="step">
+  <div class="stepno">6<small>NO LINE</small></div>
+  <div>
+    <h2>When nothing holes it</h2>
+    <div class="col">
+      <p>From some positions no aim within 60 degrees of straight holes the putt at any pace.
+        This covers <strong>4.2%</strong> of mapped green area across the season. The highest are TPC San Antonio at 17.7% (holes 2 and 7 share one large green)
+        and TPC Craig Ranch at 9.3%. 1,166 real putts were hit from these
+        positions.</p>
+      <p>These positions are handled in three steps.</p>
+
+      <figure>
+        <div class="scroller">
+        <svg class="plot" viewBox="0 0 700 270" role="img"
+             aria-label="A green with a shaded region from which no putt holes. From a ball inside it, a dashed lay-up runs to a resting place, and a second putt runs from there to the hole.">
+          <path d="M60,200 C 90,90 210,40 380,44 C 560,48 655,110 650,168 C 645,232 470,254 300,250 C 160,247 80,240 60,200 Z"
+                fill="var(--plate)" stroke="var(--rule)" stroke-width="1.5"/>
+          <path d="M66,190 C 92,96 200,50 342,50 C 330,120 300,170 232,214 C 150,228 88,224 66,190 Z"
+                fill="var(--noline)" fill-opacity="0.26"/>
+          <text x="160" y="110" fill="var(--noline)" font-family="Barlow, sans-serif" font-size="13">
+            no line holes it from in here</text>
+          <path d="M150,170 C 240,196 320,206 392,196" fill="none" stroke="var(--noline)"
+                stroke-width="2.4" stroke-dasharray="6 5" stroke-linecap="round"/>
+          <path d="M392,196 C 450,186 500,160 528,132" fill="none" stroke="var(--line)"
+                stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="150" cy="170" r="6" fill="var(--ink)"/>
+          <g stroke="var(--noline)" stroke-width="2.2" fill="none">
+            <circle cx="392" cy="196" r="6.5"/>
+            <line x1="387" y1="196" x2="397" y2="196"/><line x1="392" y1="191" x2="392" y2="201"/>
+          </g>
+          <circle cx="532" cy="128" r="8.5" fill="var(--sunk)" stroke="var(--pin)" stroke-width="2.6"/>
+          <circle cx="532" cy="128" r="2.6" fill="var(--pin)"/>
+          <text x="150" y="156" fill="var(--ink-2)" font-family="Barlow, sans-serif" font-size="12.5"
+                text-anchor="middle">Ball</text>
+          <text x="392" y="222" fill="var(--noline)" font-family="Barlow, sans-serif" font-size="12.5"
+                text-anchor="middle">1. lay it up here</text>
+          <text x="496" y="106" fill="var(--line)" font-family="Barlow, sans-serif" font-size="12.5"
+                text-anchor="middle">2. hole out</text>
+        </svg>
+        </div>
+        <figcaption>From a no-line position, the chance of one putt is 0%. The outcome is
+          scored as a lay-up followed by a second putt.</figcaption>
+      </figure>
+
+      <h3>1. Search nearby</h3>
+      <p>The survey resolves about 35 centimetres, so for the maps the solver also tries points
+        up to 35 centimetres away. If any of them has a line, that line is used.</p>
+
+      <h3>2. Lay up</h3>
+      <p>Otherwise the solver finds the aim and pace that leave the ball closest to the hole,
+        also trying 90% of that pace. The lay-up is simulated at five pace errors spanning the
+        tour distribution (standard deviation 14.7%), and the one-putt model is applied at each
+        finishing point. The results are weighted into:</p>
+      <div class="rows">
+        <div class="row"><span>Chance of three or more</span><span>1 &minus; average chance of holing the second putt</span></div>
+        <div class="row"><span>Runs off the green</span><span>share of lay-ups leaving the surveyed surface</span></div>
+      </div>
+      <p style="margin-top:15px">Lay-ups that leave the green are excluded from the average and
+        reported separately, since the model cannot score a putt from the fringe. A lay-up that
+        drops counts as holing the second putt.</p>
+
+      <div class="eg">
+        <p class="lbl">A no-line position, TPC River Highlands, 1st green</p>
+        <div class="rows">
+          <div class="row"><span>Distance to the hole</span><span>25.86 m</span></div>
+          <div class="row"><span>Chance of holing</span><span>0.0%</span></div>
+          <div class="row"><span>Lay-up leaves about</span><span>3.40 m</span></div>
+          <div class="row"><span>Runs off the green</span><span>23% of the time</span></div>
+          <div class="row"><span>Chance of three or more</span><span>28.6%</span></div>
+          <div class="row"><span>Expected putts</span><span>2.29</span></div>
+        </div>
+      </div>
+
+      <h3>3. Apply a minimum</h3>
+      <p>The chance of three or more is never set below that of a missed putt of the same
+        length, from a distance-only version of the three-putt model: <strong>0.8%</strong> at
+        1.8 metres, 1.7% at 6 metres, 19.6% at 18 metres. Without it, a no-line position could
+        score better than an ordinary putt of the same length.</p>
+    </div>
+  </div>
+</section>
+
+<!-- players -->
+<section class="step">
+  <div class="stepno aside"><small>PLAYERS</small></div>
+  <div>
+    <h2>Player ability</h2>
+    <div class="col">
+      <p>Adding a term for each player to the one-putt model improves it: log-loss falls
+        <strong>0.34%</strong> below distance alone, against 0.27% without players.</p>
+      <p>The maps leave it out because of compute. They are built from
+        <strong>1.93 million</strong> precomputed solves, and a per-player version would repeat
+        them for each of 452 players. The maps show the tour average.</p>
+      <p>Player estimates for the 2026 season so far:</p>
+
+      <figure>
+        <p class="key">
+          <span><i class="sq" style="background:var(--accent)"></i>Player estimate</span>
+          <span><i style="background:var(--ink-3)"></i>95% interval</span>
+        </p>
+        <div class="scroller">
+          <svg id="players" class="plot" viewBox="0 0 700 340" role="img"
+               aria-label="Every qualifying player's putting estimate for the 2026 season, sorted best to worst, each with an uncertainty bar. Most bars overlap zero."></svg>
+        </div>
+        <figcaption>209 players with at least 300 putts, on the log-odds scale (0 is the field
+          average). The top estimate, <b>+0.21</b>, means 1.23 times the field's odds of holing
+          the same putt; the bottom, &minus;0.18, means 0.84 times. <b>195 of 209</b> intervals
+          include zero.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- limits -->
+<section class="step">
+  <div class="stepno aside"><small>LIMITS</small></div>
+  <div>
+    <h2>Limitations</h2>
+    <div class="col">
+      <div class="caveat">
+        <p><b>No-line positions are pessimistic.</b> From the 1,166 real putts, players holed
+          5.0% and took three or more 23.2% of the time; the model gives about 56%. The survey
+          ends at the green's edge, so putting via the fringe is not modelled.</p>
+        <p><b>Long putts are extrapolated.</b> 99.87% of putts were under 25 metres. Maps cover
+          the whole green, including the far side of greens shared by two holes.</p>
+        <p><b>Two events use an assumed green speed.</b> They have no tracking data, so the
+          season median is used and the page is marked "assumed".</p>
+        <p><b>Detail under 35 centimetres is not captured</b>, nor are grain, wind or surface
+          wear.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="cta">
+  <a class="go" href="courses/">
+    Open the 31 course readers <span>&rarr;</span></a>
+  <p>One page per course, with maps of one-putt chance, three-putt chance and expected putts
+    for every hole location used. Click anywhere on a green to solve that putt.</p>
+</div>
+
+<footer>
+  <div>25 cm height grid &middot; 5 millisecond simulation steps &middot; models tested on
+    held-out tournaments &middot; green, hole location, tournament and player effects excluded
+    from the maps</div>
+  <div>2026 PGA Tour season &middot; 312,183 putts across 31 courses</div>
+</footer>
+
+</div>
+
+<script id="playerdata" type="application/json">[["Jacob Bridgeman",2011,0.2075,0.0572],["Maverick McNealy",1784,0.1668,0.0606],["Scottie Scheffler",1642,0.1548,0.0618],["Vince Whaley",1344,0.131,0.0657],["Harry Hall",1698,0.1245,0.0616],["Eric Cole",1963,0.1242,0.0583],["Russell Henley",1590,0.1229,0.0623],["Chandler Phillips",1526,0.1194,0.0628],["Denny McCarthy",1996,0.1156,0.0587],["Beau Hossler",1521,0.1152,0.0634],["Sam Burns",1557,0.1146,0.0628],["A.J. Ewart",1741,0.1141,0.0609],["Davis Riley",1454,0.1124,0.0643],["Troy Merritt",599,0.1094,0.0775],["Ryan Gerard",2084,0.1067,0.0575],["Robert MacIntyre",1681,0.1044,0.0622],["Akshay Bhatia",1576,0.1024,0.0623],["Michael Kim",2020,0.1008,0.0585],["Matt McCarty",1966,0.0985,0.059],["Seamus Power",1468,0.0934,0.064],["Erik van Rooyen",1417,0.0902,0.0648],["Wyndham Clark",1708,0.0885,0.061],["Christiaan Bezuidenhout",1772,0.0852,0.0609],["Rasmus Højgaard",1361,0.0816,0.066],["Viktor Hovland",1580,0.0814,0.0631],["Jonathan Byrd",442,0.0813,0.0809],["Alex Noren",1617,0.081,0.0635],["Chris Gotterup",1960,0.0806,0.0595],["Mackenzie Hughes",1737,0.0802,0.062],["Sam Ryder",938,0.0798,0.0711],["Matt Kuchar",1094,0.0786,0.0693],["Sungjae Im",1712,0.0771,0.0625],["Mac Meissner",1821,0.077,0.0605],["Peter Malnati",1341,0.0769,0.0651],["Takumi Kanaya",1651,0.0714,0.0619],["Zach Bauchou",1794,0.0696,0.06],["David Lipsky",1268,0.0684,0.0666],["Keita Nakajima",1132,0.0675,0.0691],["Max Greyserman",1524,0.0673,0.0632],["Ben James",750,0.0654,0.0747],["Rickie Fowler",1730,0.0649,0.0625],["Max Homa",1589,0.0645,0.0629],["Jake Knapp",1344,0.0621,0.0653],["Hayden Springer",803,0.0605,0.0735],["Harris English",1650,0.0576,0.0628],["Michael Brennan",1769,0.0563,0.0604],["Paul Waring",447,0.0536,0.0811],["Min Woo Lee",1647,0.0534,0.0626],["Andrew Putnam",1682,0.0532,0.0624],["Chad Ramey",1734,0.053,0.0618],["Ben Silverman",820,0.0527,0.0734],["Ludvig Åberg",1525,0.0499,0.0636],["Austin Eckroat",1697,0.0492,0.0614],["Karl Vilips",1451,0.049,0.0642],["Patrick Rodgers",1939,0.0486,0.0599],["Stephan Jaeger",1586,0.0471,0.063],["Alex Smalley",2012,0.0466,0.0587],["S.H. Kim",756,0.0456,0.0747],["Tyler Collet",351,0.0446,0.0834],["Ricky Castillo",1846,0.0438,0.0608],["Jordan Spieth",1881,0.0433,0.0605],["Matt Fitzpatrick",1734,0.0424,0.0618],["Webb Simpson",756,0.0407,0.0742],["Nico Echavarria",1857,0.0393,0.0602],["Brandt Snedeker",1242,0.039,0.0673],["Ben Griffin",1837,0.037,0.0607],["Ben Kohles",929,0.0355,0.0721],["Lee Hodges",1518,0.0298,0.064],["Sahith Theegala",2185,0.0289,0.0576],["Matthieu Pavon",1406,0.0274,0.0651],["Blades Brown",753,0.0249,0.0744],["Shane Lowry",1281,0.0241,0.0671],["Kristoffer Reitan",1692,0.0234,0.0617],["Jason Day",1140,0.0224,0.0687],["Camilo Villegas",1026,0.0217,0.0697],["Rory McIlroy",1054,0.0212,0.0705],["Thomas Rosenmueller",319,0.0212,0.084],["Sudarshan Yellamaraju",1816,0.0208,0.0605],["Casey Jarvis",346,0.0197,0.0842],["Sami Valimaki",766,0.0191,0.0742],["Adrien Saddier",1185,0.017,0.0682],["Kevin Roy",1894,0.0168,0.0604],["Cameron Champ",385,0.0166,0.0829],["Jimmy Stanger",1144,0.0165,0.0683],["Nick Taylor",1993,0.0165,0.0591],["Nicolai Højgaard",1783,0.0164,0.0612],["Taylor Moore",1313,0.0141,0.0676],["Hideki Matsuyama",2088,0.0139,0.0577],["Brendon Todd",390,0.0123,0.0819],["Adrien Dumont de Chassart",1377,0.0121,0.0661],["Pierceson Coody",1897,0.012,0.0601],["Patrick Fishburn",1544,0.0113,0.064],["Pontus Nyholm",1447,0.0112,0.0642],["Gary Woodland",1735,0.0107,0.0609],["Zac Blair",975,0.0105,0.0714],["Preston Stout",353,0.0092,0.0832],["Adam Scott",1644,0.009,0.0633],["Kevin Streelman",1089,0.0085,0.0692],["Steven Fisk",1619,0.0077,0.0628],["Ryan Fox",1590,0.0068,0.0628],["Jackson Koivun",641,0.0067,0.0771],["Davis Chatfield",1352,0.006,0.0659],["David Skinns",924,0.0055,0.0717],["Justin Rose",1310,0.0054,0.0664],["Tommy Fleetwood",1659,0.0052,0.0629],["Justin Lower",1261,0.0018,0.0662],["Xander Schauffele",1666,0.0017,0.0624],["Kris Ventura",1222,0.0013,0.0678],["Chan Kim",781,0.0008,0.0734],["J.T. Poston",1756,-0.0001,0.0622],["Collin Morikawa",1286,-0.0025,0.0664],["Will Gordon",463,-0.0038,0.0806],["Billy Horschel",1777,-0.0042,0.0616],["Danny Willett",678,-0.0052,0.0764],["Zecheng Dou",1613,-0.0064,0.0639],["Keith Mitchell",1944,-0.0066,0.0587],["Rasmus Neergaard-Petersen",1248,-0.0077,0.0677],["Gordon Sargent",1034,-0.0095,0.0706],["Austin Cook",301,-0.0099,0.0846],["Carson Young",572,-0.0099,0.0778],["David Ford",658,-0.0122,0.077],["Isaiah Salinda",411,-0.0132,0.0816],["Nick Dunlap",1234,-0.0134,0.0667],["Paul Peterson",746,-0.0139,0.0747],["Luke List",546,-0.015,0.0792],["Daniel Berger",1359,-0.0161,0.0659],["Jackson Suber",1464,-0.0162,0.0642],["Haotong Li",1332,-0.0162,0.066],["Kurt Kitayama",1777,-0.0164,0.0615],["Si Woo Kim",2136,-0.0165,0.0572],["Stefano Mazzoli",361,-0.0176,0.0834],["Tom Kim",2131,-0.0186,0.0578],["Doug Ghim",1500,-0.0202,0.0645],["Garrick Higgo",1423,-0.0218,0.0648],["Dylan Wu",1326,-0.0219,0.0664],["Brice Garnett",1296,-0.0219,0.0671],["Keegan Bradley",1603,-0.023,0.0633],["Matt Wallace",1313,-0.0232,0.0668],["Emiliano Grillo",1597,-0.0235,0.0626],["Aldrich Potgieter",1413,-0.0241,0.0649],["Trace Crowe",884,-0.0268,0.072],["Ryo Hisatsune",2335,-0.0278,0.056],["Patrick Cantlay",1536,-0.0283,0.0639],["Cameron Young",1739,-0.029,0.0616],["Matti Schmid",1608,-0.0297,0.0637],["Marco Penge",1042,-0.0326,0.0702],["Robert Streb",352,-0.0334,0.0834],["Joe Highsmith",1799,-0.0337,0.0608],["Cam Davis",1035,-0.0344,0.0706],["Brian Harman",1759,-0.0349,0.0614],["Corey Conners",1826,-0.0353,0.061],["Jordan Smith",1912,-0.0363,0.0602],["Tom Hoge",2054,-0.0369,0.0578],["Harry Higgs",558,-0.0389,0.0783],["Aaron Rai",1380,-0.0394,0.0659],["S.Y. Noh",355,-0.0408,0.0833],["Kevin Yu",1648,-0.0424,0.0625],["Kensei Hirata",1461,-0.0439,0.0654],["Brooks Koepka",1045,-0.0446,0.07],["Jhonattan Vegas",1246,-0.0447,0.0673],["Alex Fitzpatrick",1094,-0.0451,0.07],["Adam Hadwin",647,-0.0451,0.0769],["J.J. Spaun",1757,-0.0468,0.0616],["Neal Shipley",1359,-0.0479,0.0655],["Nick Hardy",575,-0.0479,0.0775],["Rico Hoey",2057,-0.0484,0.0588],["Michael Thorbjornsen",1818,-0.0484,0.0615],["Christo Lamprecht",1162,-0.0489,0.0682],["Sepp Straka",1557,-0.0496,0.0633],["Patton Kizzire",1218,-0.0534,0.0673],["Luke Clanton",1323,-0.0536,0.0656],["Fabián Gómez",564,-0.0541,0.079],["Jesper Svensson",981,-0.0543,0.0716],["Dan Brown",923,-0.0558,0.0722],["Thorbjørn Olesen",1264,-0.0559,0.0673],["Brian Campbell",1536,-0.0559,0.0635],["John VanDerLaan",1428,-0.0603,0.0655],["William Mouw",1474,-0.0604,0.0643],["Davis Thompson",1621,-0.0616,0.063],["Adam Schenk",1461,-0.0623,0.0641],["John Parry",1551,-0.0642,0.0639],["Adam Svensson",1339,-0.0674,0.0653],["Justin Thomas",1420,-0.0678,0.0654],["Charley Hoffman",753,-0.0702,0.0746],["Ryan Brehm",413,-0.0707,0.0821],["Johnny Keefer",1745,-0.0712,0.0621],["Tyler Duncan",462,-0.073,0.0805],["Aaron Wise",762,-0.0734,0.0752],["Danny Walker",1528,-0.0742,0.0639],["Lanto Griffin",1176,-0.0747,0.069],["Bud Cauley",1954,-0.0776,0.0602],["Jeremy Paul",632,-0.0815,0.0767],["Sam Stevens",1924,-0.0845,0.06],["Max McGreevy",1769,-0.0847,0.0613],["Chris Kirk",1449,-0.0866,0.0645],["Hank Lebioda",1550,-0.0869,0.0637],["Rafael Campos",1166,-0.0876,0.0692],["Taylor Pendrith",2041,-0.0918,0.0593],["Jeffrey Kang",1272,-0.0965,0.0662],["Chandler Blanchet",1591,-0.0978,0.0633],["Tony Finau",2015,-0.1016,0.0597],["Joel Dahmen",1678,-0.1034,0.0623],["Austin Smotherman",1690,-0.1242,0.0622],["Andrew Novak",1740,-0.1325,0.0623],["Ben Martin",604,-0.1344,0.0781],["Lucas Glover",1682,-0.1454,0.0624],["Mark Hubbard",1696,-0.1508,0.0625],["Marcelo Rozo",1150,-0.1593,0.0688],["Alejandro Tosti",1227,-0.1767,0.068]]</script>
+<script>
+(function () {
+  var P = JSON.parse(document.getElementById('playerdata').textContent);
+  var svg = document.getElementById('players');
+  var W = 700, H = 340, L = 64, R = 20, T = 30, B = 62;
+  var lo = -0.32, hi = 0.32;                      // log-odds axis, symmetric about zero
+  var x = function (i) { return L + (i / (P.length - 1)) * (W - L - R); };
+  var y = function (v) { return T + (hi - v) / (hi - lo) * (H - T - B); };
+  var ns = 'http://www.w3.org/2000/svg';
+  var add = function (tag, attrs, text) {
+    var e = document.createElementNS(ns, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    svg.appendChild(e); return e;
+  };
+  [-0.3, -0.15, 0, 0.15, 0.3].forEach(function (v) {
+    add('line', { x1: L, y1: y(v), x2: W - R, y2: y(v),
+      stroke: v === 0 ? 'var(--ink-3)' : 'var(--rule-soft)', 'stroke-width': 1 });
+    add('text', { x: L - 10, y: y(v) + 4, fill: 'var(--ink-3)', 'text-anchor': 'end',
+      'font-family': 'IBM Plex Mono, monospace', 'font-size': 11 },
+      (v > 0 ? '+' : '') + v.toFixed(2));
+  });
+  // uncertainty first, so the dots sit on top of their own bars
+  P.forEach(function (p, i) {
+    var e = p[2], s = p[3] * 1.96;
+    add('line', { x1: x(i), y1: y(e - s), x2: x(i), y2: y(e + s),
+      stroke: 'var(--ink-3)', 'stroke-width': 1.2, opacity: 0.5 });
+  });
+  P.forEach(function (p, i) {
+    add('circle', { cx: x(i), cy: y(p[2]), r: 2.2, fill: 'var(--accent)' });
+  });
+  add('text', { x: L, y: H - 34, fill: 'var(--ink-2)',
+    'font-family': 'Barlow, sans-serif', 'font-size': 12 },
+    'best putter → worst, by model estimate');
+  add('text', { x: L, y: T - 12, fill: 'var(--ink-2)',
+    'font-family': 'Barlow, sans-serif', 'font-size': 12.5 },
+    'Putting effect vs the field, log-odds');
+  // name the extremes, since a caterpillar plot is otherwise anonymous
+  [[0, 'start'], [P.length - 1, 'end']].forEach(function (pair) {
+    var i = pair[0], anchor = pair[1];
+    var dx = anchor === 'start' ? 6 : -6;
+    add('text', { x: x(i) + dx, y: y(P[i][2]) + (anchor === 'start' ? -10 : 18),
+      fill: 'var(--ink)', 'text-anchor': anchor,
+      'font-family': 'Barlow, sans-serif', 'font-size': 12.5 }, P[i][0]);
+  });
+})();
+</script>
+
+</body>
+</html>

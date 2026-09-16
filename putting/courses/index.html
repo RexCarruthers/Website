@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>2026 Season Green Readers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --paper:#101513; --plate:#171E1B; --rule:#2C3733; --rule-soft:#212A27;
+  --ink:#E2E8E4; --ink-2:#9BA8A2; --ink-3:#6E7B75; --accent:#78AF9C;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Barlow",system-ui,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 80px}
+header{padding:56px 0 22px;border-bottom:1px solid var(--rule)}
+.lbl{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 14px}
+h1{font-family:"Barlow Condensed",sans-serif;font-size:clamp(34px,5.5vw,54px);line-height:1;
+  letter-spacing:-.01em;font-weight:600;margin:0 0 14px}
+.sub{color:var(--ink-2);max-width:66ch;margin:0}
+.tot{display:flex;flex-wrap:wrap;gap:0 34px;margin:20px 0 0;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-2)}
+.tot b{color:var(--ink);font-weight:500}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:18px 0 22px}
+.bar .lbl{margin:0 4px 0 0}
+button{font:inherit;font-size:12px;font-family:"IBM Plex Mono",monospace;letter-spacing:.04em;
+  background:var(--plate);color:var(--ink-2);border:1px solid var(--rule-soft);
+  padding:5px 11px;border-radius:2px;cursor:pointer}
+button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:1px;
+  background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.card{background:var(--plate);padding:16px 17px 13px;display:flex;flex-direction:column;
+  text-decoration:none;color:inherit;min-height:100%}
+a.card:hover{background:var(--paper)}
+a.card:hover .go{color:var(--accent)}
+.card.off{opacity:.55}
+.cn{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:600;line-height:1.1}
+.cc{font-size:11.5px;color:var(--ink-3);margin:3px 0 12px;min-height:2.4em}
+dl{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;flex:1}
+dl div{min-width:0}
+dt{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500}
+.go{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+  margin-top:13px;padding-top:9px;border-top:1px solid var(--rule-soft)}
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);line-height:1.8}
+</style>
+<div class="wrap">
+<header>
+  <p class="lbl">Putting outcome model &middot; interactive solvers</p>
+  <h1>2026 Season Green Readers</h1>
+  <p class="sub">One page per course. Each solves any putt you place on the surveyed mesh:
+    the line, the pace, the window of aims that still drop. Each paints the fitted model
+    over the whole green: the chance of holing out, the chance of taking three or more, and
+    expected putts, for every pin the tournament actually used.</p>
+  <p class="tot"><span><b>31</b> courses</span><span><b>558</b> greens</span><span><b>2,166</b> pins</span><span><b>1,928,237</b> precomputed solves</span></p>
+</header>
+<div class="bar">
+  <span class="lbl">Sort</span>
+  <button type="button" data-sort="name" aria-pressed="true">Course</button>
+  <button type="button" data-sort="noline" aria-pressed="false">Hardest to hole from</button>
+  <button type="button" data-sort="stimp" aria-pressed="false">Fastest greens</button>
+</div>
+<div class="grid" id="grid">
+<a class="card" href="R2026009.html" data-name="Arnold Palmer's Bay Hill" data-noline="1.77" data-stimp="12.67">
+      <div class="cn">Arnold Palmer's Bay Hill</div>
+      <div class="cc">Arnold Palmer's Bay Hill Club &amp; Lodge</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.67 ft</dd></div>
+        <div><dt>Mean green</dt><dd>506 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>61,558</dd></div>
+        <div><dt>No holing line</dt><dd>1.8%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026028.html" data-name="Bellerive" data-noline="2.8" data-stimp="11.73">
+      <div class="cn">Bellerive</div>
+      <div class="cc">Bellerive Country Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>11.73 ft</dd></div>
+        <div><dt>Mean green</dt><dd>701 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>84,926</dd></div>
+        <div><dt>No holing line</dt><dd>2.8%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026021.html" data-name="Colonial" data-noline="2.32" data-stimp="12.51">
+      <div class="cn">Colonial</div>
+      <div class="cc">Colonial Country Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.51 ft</dd></div>
+        <div><dt>Mean green</dt><dd>459 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>55,505</dd></div>
+        <div><dt>No holing line</dt><dd>2.3%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026524.html" data-name="Detroit" data-noline="3.64" data-stimp="11.86">
+      <div class="cn">Detroit</div>
+      <div class="cc">Detroit Golf Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>11.86 ft</dd></div>
+        <div><dt>Mean green</dt><dd>585 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>70,066</dd></div>
+        <div><dt>No holing line</dt><dd>3.6%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026553.html" data-name="Dunes" data-noline="0.84" data-stimp="12.31">
+      <div class="cn">Dunes</div>
+      <div class="cc">Dunes Golf and Beach Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.31 ft</dd></div>
+        <div><dt>Mean green</dt><dd>533 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>65,626</dd></div>
+        <div><dt>No holing line</dt><dd>0.8%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026060.html" data-name="East Lake" data-noline="2.31" data-stimp="12.49">
+      <div class="cn">East Lake</div>
+      <div class="cc">East Lake Golf Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.49 ft</dd></div>
+        <div><dt>Mean green</dt><dd>597 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>72,506</dd></div>
+        <div><dt>No holing line</dt><dd>2.3%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026012.html" data-name="Harbour Town" data-noline="6.24" data-stimp="12.41">
+      <div class="cn">Harbour Town</div>
+      <div class="cc">Harbour Town Golf Links</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.41 ft</dd></div>
+        <div><dt>Mean green</dt><dd>374 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>43,162</dd></div>
+        <div><dt>No holing line</dt><dd>6.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026518.html" data-name="Hurstbourne" data-noline="1.16" data-stimp="12.24">
+      <div class="cn">Hurstbourne</div>
+      <div class="cc">Hurstbourne Country Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.24 ft</dd></div>
+        <div><dt>Mean green</dt><dd>438 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>53,562</dd></div>
+        <div><dt>No holing line</dt><dd>1.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026475.html" data-name="Innisbrook (Copperhead)" data-noline="2.35" data-stimp="12.37">
+      <div class="cn">Innisbrook (Copperhead)</div>
+      <div class="cc">Innisbrook Resort and Golf Club - Copperhead Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.37 ft</dd></div>
+        <div><dt>Mean green</dt><dd>416 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>50,138</dd></div>
+        <div><dt>No holing line</dt><dd>2.4%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026020.html" data-name="Memorial Park" data-noline="2.69" data-stimp="12.24">
+      <div class="cn">Memorial Park</div>
+      <div class="cc">Memorial Park Golf Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.24 ft</dd></div>
+        <div><dt>Mean green</dt><dd>635 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>76,934</dd></div>
+        <div><dt>No holing line</dt><dd>2.7%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026023.html" data-name="Muirfield Village" data-noline="6.68" data-stimp="12.52">
+      <div class="cn">Muirfield Village</div>
+      <div class="cc">Muirfield Village Golf Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.52 ft</dd></div>
+        <div><dt>Mean green</dt><dd>418 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>48,150</dd></div>
+        <div><dt>No holing line</dt><dd>6.7%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026005.html" data-name="Pebble Beach" data-noline="3.48" data-stimp="11.73">
+      <div class="cn">Pebble Beach</div>
+      <div class="cc">Pebble Beach Golf Links</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>55</dd></div>
+        <div><dt>Median stimp</dt><dd>11.73 ft</dd></div>
+        <div><dt>Mean green</dt><dd>340 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>30,530</dd></div>
+        <div><dt>No holing line</dt><dd>3.5%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026002.html" data-name="Pete Dye Stadium Course" data-noline="2.75" data-stimp="12.59">
+      <div class="cn">Pete Dye Stadium Course</div>
+      <div class="cc">Pete Dye Stadium Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>37</dd></div>
+        <div><dt>Median stimp</dt><dd>12.59 ft</dd></div>
+        <div><dt>Mean green</dt><dd>610 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>37,592</dd></div>
+        <div><dt>No holing line</dt><dd>2.8%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026010.html" data-name="PGA National (Champion)" data-noline="1.17" data-stimp="12.43">
+      <div class="cn">PGA National (Champion)</div>
+      <div class="cc">PGA National - Champion Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.43 ft</dd></div>
+        <div><dt>Mean green</dt><dd>528 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>64,768</dd></div>
+        <div><dt>No holing line</dt><dd>1.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026522.html" data-name="Puntacana (Corales)" data-noline="2.98" data-stimp="12.2">
+      <div class="cn">Puntacana (Corales)</div>
+      <div class="cc">Puntacana Resort &amp; Club (Corales Golf Course)</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.20 ft</dd></div>
+        <div><dt>Mean green</dt><dd>574 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>69,206</dd></div>
+        <div><dt>No holing line</dt><dd>3.0%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026480.html" data-name="Quail Hollow" data-noline="1.18" data-stimp="12.57">
+      <div class="cn">Quail Hollow</div>
+      <div class="cc">Quail Hollow Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.57 ft</dd></div>
+        <div><dt>Mean green</dt><dd>600 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>73,832</dd></div>
+        <div><dt>No holing line</dt><dd>1.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026013.html" data-name="Sedgefield" data-noline="7.43" data-stimp="12.39">
+      <div class="cn">Sedgefield</div>
+      <div class="cc">Sedgefield Country Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.39 ft</dd></div>
+        <div><dt>Mean green</dt><dd>589 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>67,837</dd></div>
+        <div><dt>No holing line</dt><dd>7.4%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026541.html" data-name="The Renaissance" data-noline="8.23" data-stimp="12.2">
+      <div class="cn">The Renaissance</div>
+      <div class="cc">The Renaissance Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.20 ft</dd></div>
+        <div><dt>Mean green</dt><dd>738 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>84,492</dd></div>
+        <div><dt>No holing line</dt><dd>8.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026007.html" data-name="The Riviera" data-noline="8.13" data-stimp="13.09">
+      <div class="cn">The Riviera</div>
+      <div class="cc">The Riviera Country Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>13.09 ft</dd></div>
+        <div><dt>Mean green</dt><dd>514 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>58,457</dd></div>
+        <div><dt>No holing line</dt><dd>8.1%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026004.html" data-name="Torrey Pines (South)" data-noline="2.17" data-stimp="12.27">
+      <div class="cn">Torrey Pines (South)</div>
+      <div class="cc">Torrey Pines Golf Course (South Course)</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>58</dd></div>
+        <div><dt>Median stimp</dt><dd>12.27 ft</dd></div>
+        <div><dt>Mean green</dt><dd>449 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>43,704</dd></div>
+        <div><dt>No holing line</dt><dd>2.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026019.html" data-name="TPC Craig Ranch" data-noline="9.35" data-stimp="11.89">
+      <div class="cn">TPC Craig Ranch</div>
+      <div class="cc">TPC Craig Ranch</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>11.89 ft</dd></div>
+        <div><dt>Mean green</dt><dd>636 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>71,602</dd></div>
+        <div><dt>No holing line</dt><dd>9.3%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026030.html" data-name="TPC Deere Run" data-noline="6.21" data-stimp="12.11">
+      <div class="cn">TPC Deere Run</div>
+      <div class="cc">TPC Deere Run</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.11 ft</dd></div>
+        <div><dt>Mean green</dt><dd>515 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>59,819</dd></div>
+        <div><dt>No holing line</dt><dd>6.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026034.html" data-name="TPC River Highlands" data-noline="2.06" data-stimp="12.27">
+      <div class="cn">TPC River Highlands</div>
+      <div class="cc">TPC River Highlands</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.27 ft</dd></div>
+        <div><dt>Mean green</dt><dd>509 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>61,925</dd></div>
+        <div><dt>No holing line</dt><dd>2.1%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026041.html" data-name="TPC San Antonio (Oaks)" data-noline="17.66" data-stimp="12.21">
+      <div class="cn">TPC San Antonio (Oaks)</div>
+      <div class="cc">TPC San Antonio - The Oaks Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.21 ft</dd></div>
+        <div><dt>Mean green</dt><dd>600 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>61,243</dd></div>
+        <div><dt>No holing line</dt><dd>17.7%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026011.html" data-name="TPC Sawgrass (PLAYERS Stadium)" data-noline="2.1" data-stimp="12.32">
+      <div class="cn">TPC Sawgrass (PLAYERS Stadium)</div>
+      <div class="cc">TPC Sawgrass - THE PLAYERS Stadium Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.32 ft</dd></div>
+        <div><dt>Mean green</dt><dd>451 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>54,637</dd></div>
+        <div><dt>No holing line</dt><dd>2.1%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026003.html" data-name="TPC Scottsdale (Stadium)" data-noline="2.86" data-stimp="12.3">
+      <div class="cn">TPC Scottsdale (Stadium)</div>
+      <div class="cc">TPC Scottsdale (Stadium Course)</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.30 ft</dd></div>
+        <div><dt>Mean green</dt><dd>649 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>78,375</dd></div>
+        <div><dt>No holing line</dt><dd>2.9%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026027.html" data-name="TPC Southwind" data-noline="3.39" data-stimp="12.25">
+      <div class="cn">TPC Southwind</div>
+      <div class="cc">TPC Southwind</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.25 ft</dd></div>
+        <div><dt>Mean green</dt><dd>431 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>51,363</dd></div>
+        <div><dt>No holing line</dt><dd>3.4%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026032.html" data-name="TPC Toronto at Osprey Valley (North)" data-noline="1.42" data-stimp="11.48">
+      <div class="cn">TPC Toronto at Osprey Valley (North)</div>
+      <div class="cc">TPC Toronto at Osprey Valley - North Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>11.48 ft</dd></div>
+        <div><dt>Mean green</dt><dd>515 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>63,097</dd></div>
+        <div><dt>No holing line</dt><dd>1.4%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026525.html" data-name="TPC Twin Cities" data-noline="5.22" data-stimp="11.72">
+      <div class="cn">TPC Twin Cities</div>
+      <div class="cc">TPC Twin Cities</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>11.72 ft</dd></div>
+        <div><dt>Mean green</dt><dd>601 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>70,805</dd></div>
+        <div><dt>No holing line</dt><dd>5.2%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026556.html" data-name="Trump National Doral (Blue Monster)" data-noline="4.33" data-stimp="12.08">
+      <div class="cn">Trump National Doral (Blue Monster)</div>
+      <div class="cc">Trump National Doral - Blue Monster Course</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>12.08 ft</dd></div>
+        <div><dt>Mean green</dt><dd>604 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>71,644</dd></div>
+        <div><dt>No holing line</dt><dd>4.3%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+<a class="card" href="R2026006.html" data-name="Waialae" data-noline="1.45" data-stimp="11.97">
+      <div class="cn">Waialae</div>
+      <div class="cc">Waialae Country Club</div>
+      <dl>
+        <div><dt>Greens</dt><dd>18</dd></div>
+        <div><dt>Pins</dt><dd>72</dd></div>
+        <div><dt>Median stimp</dt><dd>11.97 ft</dd></div>
+        <div><dt>Mean green</dt><dd>581 m&sup2;</dd></div>
+        <div><dt>Solves</dt><dd>71,176</dd></div>
+        <div><dt>No holing line</dt><dd>1.4%</dd></div>
+      </dl>
+      <div class="go">Open reader &rarr;</div></a>
+</div>
+<footer>
+  <div>Surveyed mesh on a 0.25 m grid &middot; RK4 at 5 ms &middot; green speed measured per
+    green from tracked putt decelerations &middot; model random effects excluded</div>
+  <div>Built 2026-09-16 by tools/build_index.js</div>
+</footer>
+</div>
+<script>
+(function () {
+  var grid = document.getElementById("grid");
+  var cards = Array.prototype.slice.call(grid.children);
+  var btns = Array.prototype.slice.call(document.querySelectorAll("[data-sort]"));
+  btns.forEach(function (b) {
+    b.onclick = function () {
+      var k = b.dataset.sort;
+      btns.forEach(function (o) {
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      // Course sorts A-Z; every measure sorts biggest first, which is the interesting end.
+      var sorted = cards.slice().sort(function (x, y) {
+        if (k === "name") return x.dataset.name.localeCompare(y.dataset.name);
+        return parseFloat(y.dataset[k]) - parseFloat(x.dataset[k]);
+      });
+      sorted.forEach(function (c) { grid.appendChild(c); });
+    };
+  });
+})();
+</script>
+
+</body>
+</html>
