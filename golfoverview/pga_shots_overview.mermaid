@@ -1,0 +1,23 @@
+%% OVERVIEW diagram of data/pga_shots.db - structure only, no columns.
+%% Column-level detail lives in pga_shots_schema_detail.qmd.
+%% NO table declares a foreign key. Every edge below is a join BY CONVENTION
+%% on (tournamentId, playerId, round, hole, stroke). See data/PGA_SHOTS_DB.md.
+
+%%{init: {'er': {'layoutDirection': 'LR', 'fontSize': 20, 'minEntityWidth': 130, 'entityPadding': 18}}}%%
+erDiagram
+    meta     ||--o{ courses              : "tid"
+    meta     ||--o{ players              : "tid"
+    meta     ||--o{ rounds               : "tid"
+    meta     ||--o{ holes                : "tid"
+    meta     ||--o{ shots                : "tid"
+
+    courses  ||--o{ players              : "id to courseId"
+    players  ||--o{ rounds               : "id"
+    players  ||--o{ holes                : "id to playerId"
+    players  ||--o{ shots                : "id to playerId"
+    holes    ||--o{ shots                : "holeNumber to hole_num"
+
+    shots    ||--o{ putt_paths           : "hole/stroke"
+    shots    ||--o{ trajectories         : "hole/stroke"
+    shots    ||--o| trajectories_norm_v1 : "same key"
+    shots    ||--o| trajectories_norm_v2 : "same key"

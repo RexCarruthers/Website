@@ -1,0 +1,261 @@
+### Table reference {#sec-schema-detail}
+
+::: {.panel-tabset}
+
+### meta
+
+31 rows = 31 events, `R2026002`–`R2026556`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `tournamentId` | text | PK by convention |
+| `tournamentStatus` | text | all `COMPLETED` |
+| `timezone` | text | |
+| `formatType` | text | all `STROKE_PLAY` |
+| `source_file` | text | leaderboard JSON this import came from |
+| `n_shots` | int | |
+| `has_radar` | int | 0 for `R2026522` and `R2026541` only |
+| `has_putt_paths` | int | 0 for the same two |
+| `imported_at` | text | all `2026-09-06` |
+
+### courses
+
+35 rows / 31 events: `R2026002` has 3 courses; `R2026004` and `R2026005` have 2.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text | 3-char course id, as embedded in image URLs |
+| `courseName` | text | |
+| `courseCode` | text | 2-letter, **not** unique across tournaments |
+| `scoringLevel` | text | `TOURCAST` or `STATS` |
+| `hostCourse` | int | 1 = the venue that has 3-D assets |
+| `tournamentId` | text | → `meta.tournamentId` |
+
+### players
+
+475 distinct people, 3,535 event-entries. 55 columns total, mostly UI chrome.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text | stable across events |
+| `tournamentId` | text | → `meta.tournamentId` |
+| `leaderboardSortOrder` | int | 0 = winner |
+| `position` | text | `1`, `T2`, `CUT` |
+| `total` | text | score to par, stored as TEXT |
+| `totalSort` | int | |
+| `score` | text | today, to par |
+| `thru` | text | |
+| `totalStrokes` | text | |
+| `courseId` | text | → `courses.id` |
+| `groupNumber` | int | |
+| `currentRound` | int | |
+| `backNine` | int | |
+| `roundStatus` | text | |
+| `playerState` | text | |
+| *name fields* | text | `firstName` `lastName` `displayName` `shortName` `country` `countryFlag` `amateur` |
+| *leaderboard chrome* | text | `movement` `ranking` `projected` `sponsorLogo` `tooltip` — UI only |
+| *denorm meta* | text | `tournamentStatus` `timezone` `formatType` `source_file` |
+
+### rounds
+
+14,048 rows.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text | player id → `players.id` |
+| `displayName` | text | |
+| `round_num` | int | 1–4 |
+| `round_score` | text | `-` if not played |
+| `tournamentId` | text | → `meta.tournamentId` |
+| *denorm meta* | text | `tournamentStatus` `timezone` `formatType` `source_file` |
+
+### holes
+
+204,624 rows.
+
+| Column | Type | Notes |
+|---|---|---|
+| `tournamentId` | text | → `meta.tournamentId` |
+| `playerId` | text | → `players.id` |
+| `round` | int | |
+| `holeNumber` | int | 1–18 |
+| `par` | int | |
+| `yardage` | int | |
+| `status` | text | `PAR` `BIRDIE` `BOGEY` `DOUBLE_BOGEY` `EAGLE` |
+| `score` | text | TEXT, not int |
+| `rank` | text | TEXT, not int |
+| `pin_svx` | real | **survey feet — populated on all rows. Use this** |
+| `pin_svy` | real | survey feet |
+| `pin_svz` | real | survey feet — a real elevation |
+| `pin_x` | int | green image 0–1; `-1` = missing. Legacy |
+| `pin_y` | int | green image 0–1; `-1` = missing. Legacy |
+| `pin_z` | int | always `-1`, never an elevation |
+| `tee_x` | int | hole image 0–1; approx `-10` = missing |
+| `tee_y` | int | hole image 0–1; approx `-10` = missing |
+| `tee_z` | int | always `-1` |
+| `fairway_x` | real | survey feet, not normalized; `0` = missing on 46,762 rows |
+| `fairway_y` | real | survey feet |
+| `fairway_z` | real | |
+| `hole_image_url` | text | |
+| `green_image_url` | text | encodes season + event + 3-digit course id + hole |
+| *denorm player* | text | `firstName` `lastName` `displayName` `shortName` `country` `countryFlag` `amateur` `total` `totalSort` `thru` |
+
+### shots
+
+801,101 rows, 65 columns.
+
+**Keys and identity**
+
+| Column | Type | Notes |
+|---|---|---|
+| `tournamentId` | text | → `meta.tournamentId` |
+| `playerId` | text | → `players.id` |
+| `round` | int | |
+| `hole_num` | int | note: `hole_num`, **not** `holeNumber` |
+| `stroke_num` | int | note: `stroke_num`, **not** `strokeNumber` |
+
+**Classification and outcome**
+
+| Column | Type | Notes |
+|---|---|---|
+| `shot_type` | text | `STROKE` 790,523 / `DROP` 6,657 / `PENALTY` 3,921 — never `Putt` |
+| `is_final` | int | 1 if this stroke holed out |
+| `shot_distance` | text | **string**, e.g. `326 yds` or `24 ft 1 in`. Distance *moved*, not distance to hole |
+| `distance_to_hole` | text | same string formats; empty when holed |
+| `from_loc` | text | |
+| `to_loc` | text | |
+| `from_loc_code` | text | `OGR` = on green = a putt. 327,360 rows |
+| `to_loc_code` | text | |
+| `play_by_play` | text | |
+| `shot_label` | text | |
+| `markerText` | text | |
+| `video_id` | text | |
+| `showMarker` | int | |
+| `groupShowMarker` | int | |
+
+**Coordinates — survey feet (use these)**
+
+| Column | Type | Notes |
+|---|---|---|
+| `from_svx` | real | **survey feet.** `-1` = missing on 34,601 rows, almost all at the non-host courses of `R2026002` and `R2026004` |
+| `from_svy` | real | survey feet |
+| `from_svz` | real | survey feet — a real elevation |
+| `to_svx` | real | survey feet |
+| `to_svy` | real | |
+| `to_svz` | real | |
+
+**Coordinates — green, enhanced**
+
+| Column | Type | Notes |
+|---|---|---|
+| `green_from_ex` | real | the API `enhancedX` — normalized green image, may fall outside 0–1 |
+| `green_from_ey` | real | |
+| `green_to_ex` | real | |
+| `green_to_ey` | real | |
+
+**Coordinates — legacy (prefer the survey columns above)**
+
+| Column | Type | Notes |
+|---|---|---|
+| `from_x` | real | hole image 0–1; `-1` = missing |
+| `from_y` | real | |
+| `from_z` | real | always `-1.0` |
+| `to_x` | real | hole image 0–1 |
+| `to_y` | real | |
+| `to_z` | real | always `-1.0` |
+| `green_from_x` | real | green image 0–1; approx `-10` = missing on 134,571 rows |
+| `green_from_y` | real | |
+| `green_to_x` | real | |
+| `green_to_y` | real | |
+
+**Putting**
+
+| Column | Type | Notes |
+|---|---|---|
+| `putt_lip_out` | int | |
+| `putt_distance_inches` | real | the reliable putt length |
+| `putt_reconstruction` | text | `camera` / `simulation` / `NULL` — confounded with outcome |
+
+**Radar** — 306,266 shots carry radar; all NULL for putts.
+
+| Column | Type | Notes |
+|---|---|---|
+| `radar_club_speed` | real | |
+| `radar_ball_speed` | real | |
+| `radar_smash_factor` | real | |
+| `radar_apex_height` | real | |
+| `radar_apex_range` | real | |
+| `radar_apex_side` | real | |
+| `radar_launch_spin` | real | |
+| `radar_spin_axis` | real | |
+| `radar_launch_angle_v` | real | |
+| `radar_launch_angle_h` | real | |
+| `radar_flight_time` | real | |
+| `radar_impact_time` | text | TEXT timestamp |
+| `radar_impact_ts` | text | TEXT timestamp |
+
+**Denormalized**
+
+| Column | Type | Notes |
+|---|---|---|
+| *denorm player* | text | `firstName` `lastName` `displayName` `shortName` `country` `countryFlag` `amateur` `total` `totalSort` `thru` |
+
+### putt_paths
+
+4,148,494 rows across 29 events — missing `R2026522` and `R2026541`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `tournamentId` | text | → `meta.tournamentId` |
+| `playerId` | text | → `players.id` |
+| `round` | int | |
+| `holeNumber` | int | → `shots.hole_num` |
+| `strokeNumber` | int | → `shots.stroke_num` |
+| `x` | real | survey feet |
+| `y` | real | survey feet |
+| `z` | real | survey feet |
+| `secondsSinceStart` | real | **`ORDER BY` this — rows are not stored in order** |
+
+### trajectories
+
+306,264 rows across 29 events.
+
+| Column | Type | Notes |
+|---|---|---|
+| `tournamentId` | text | → `meta.tournamentId` |
+| `playerId` | text | → `players.id` |
+| `round` | int | |
+| `holeNumber` | int | → `shots.hole_num` |
+| `strokeNumber` | int | → `shots.stroke_num` |
+| `kind` | text | always `Flight` |
+| `type` | text | `Incoming` 171,511 / `Broadcast` 134,753 |
+| `xFit` | text | JSON poly coefficients, **ascending** powers of t |
+| `yFit` | text | JSON |
+| `zFit` | text | JSON |
+| `spinRateFit` | text | JSON |
+| `timeInterval` | text | JSON `start,end` seconds |
+| `validTimeInterval` | text | JSON |
+| `measuredTimeInterval` | text | JSON |
+| `__typename` | text | GraphQL residue |
+
+### trajectories_norm_v1 / v2
+
+182,744 rows each. `v2` has the same schema as `v1`, and `carry` is identical
+to `v1` on every joined row.
+
+| Column | Type | Notes |
+|---|---|---|
+| *key cols* | text | `tournamentId` `playerId` `round` `holeNumber` `strokeNumber` |
+| `valid` | int | 1 for every row |
+| `yFit` | text | JSON lateral. **There is no `xFit`** — normalization removed that axis |
+| `zFit` | text | JSON vertical |
+| `timeInterval` | text | JSON |
+| `validTimeInterval` | text | JSON |
+| `carry` | real | |
+| `carrySide` | real | |
+| `curve` | real | |
+| `maxHeight` | real | |
+| `spinAxis` | real | |
+| `windVelocity` | text | JSON |
+
+:::

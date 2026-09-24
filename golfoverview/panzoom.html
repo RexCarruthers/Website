@@ -1,0 +1,38 @@
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+(function () {
+  let tries = 0;
+  const timer = setInterval(() => {
+    tries++;
+
+    // any SVG that contains a mermaid node label
+    const svgs = [...document.querySelectorAll('svg')]
+      .filter(s => s.querySelector('.nodeLabel, .node, .edgePath, .er, .entityBox'));
+
+    if (svgs.length === 0) {
+      if (tries > 40) { clearInterval(timer); console.warn('panzoom: no mermaid SVG'); }
+      return;
+    }
+
+    clearInterval(timer);
+    console.log('panzoom: found', svgs.length);
+
+    svgs.forEach(svg => {
+      svg.removeAttribute('height');
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.width    = '100%';
+      svg.style.height   = '600px';
+      svg.style.border   = '1px solid #ddd';   // so you can see the viewport
+
+      svgPanZoom(svg, {
+        controlIconsEnabled: true,
+        fit: true,
+        center: true,
+        minZoom: 0.3,
+        maxZoom: 25
+      });
+    });
+  }, 250);
+})();
+</script>

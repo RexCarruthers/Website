@@ -1,0 +1,228 @@
+%% ER diagram of data/pga_shots.db - re-verified live 2026-09-20.
+%% Types shown are the DECLARED SQLite types; several lie (see data/PGA_SHOTS_DB.md section 8).
+%% Only `assets` declares a primary key. NO table declares a foreign key - every join
+%% below is by convention on (tournamentId, playerId, round, hole, stroke).
+%% CHANGES SINCE THE 2026-09-05 VERSION OF THIS FILE:
+%%   + holes.pin_svx/svy/svz and shots.from_sv*/to_sv*  - survey feet, the good coordinates
+%%   + shots.green_from_ex/ey, green_to_ex/ey           - the API's enhancedX/Y
+%%   ! assets is now EMPTY (0 rows). The 2,852 files are still on disk under data/assets/;
+%%     the manifest was dropped by the 2026-09-06 rescrape. Walk the tree, do not query it.
+%% Companion diagram: data/pga_assets_frames.mermaid (asset tree + coordinate frames).
+
+erDiagram
+    meta {
+        text tournamentId PK "31 rows = 31 events, R2026002..R2026556"
+        text tournamentStatus "all COMPLETED"
+        text timezone
+        text formatType "all STROKE_PLAY"
+        text source_file "leaderboard JSON this import came from"
+        int  n_shots
+        int  has_radar "0 for R2026522 and R2026541 only"
+        int  has_putt_paths "0 for the same two"
+        text imported_at "all 2026-09-06"
+    }
+
+    courses {
+        text id "3-char course id, as embedded in image URLs"
+        text courseName
+        text courseCode "2-letter, NOT unique across tournaments"
+        text scoringLevel "TOURCAST or STATS"
+        int  hostCourse "1 = the venue that has 3-D assets"
+        text tournamentId FK "35 rows / 31 events: R2026002 has 3 courses, R2026004 and R2026005 have 2"
+    }
+
+    players {
+        text id PK "stable across events; 475 distinct people, 3,535 event-entries"
+        text tournamentId FK
+        int  leaderboardSortOrder "0 = winner"
+        text position "1, T2, CUT"
+        text total "score to par, TEXT"
+        int  totalSort
+        text score "today, to par"
+        text thru
+        text totalStrokes
+        text courseId "which courses.id they played"
+        int  groupNumber
+        int  currentRound
+        int  backNine
+        text roundStatus
+        text playerState
+        text name_fields "firstName lastName displayName shortName country countryFlag amateur"
+        text leaderboard_chrome "movement / ranking / projected / sponsorLogo / tooltip - 55 cols total, mostly UI"
+        text denorm_meta "tournamentStatus timezone formatType source_file"
+    }
+
+    rounds {
+        text id FK "player id - 14,048 rows"
+        text displayName
+        int  round_num "1-4"
+        text round_score "or - if not played"
+        text tournamentId FK
+        text denorm_meta "tournamentStatus timezone formatType source_file"
+    }
+
+    holes {
+        text tournamentId FK "204,624 rows"
+        text playerId FK
+        int  round
+        int  holeNumber "1-18"
+        int  par
+        int  yardage
+        text status "PAR BIRDIE BOGEY DOUBLE_BOGEY EAGLE"
+        text score "TEXT, not int"
+        text rank "TEXT, not int"
+        real pin_svx "SURVEY FEET - populated on all 204,624 rows. USE THIS"
+        real pin_svy "SURVEY FEET"
+        real pin_svz "SURVEY FEET - a real elevation"
+        int  pin_x "green image 0-1; -1 = missing. legacy"
+        int  pin_y "green image 0-1; -1 = missing. legacy"
+        int  pin_z "ALWAYS -1, never an elevation"
+        int  tee_x "hole image 0-1; approx -10 = missing"
+        int  tee_y "hole image 0-1; approx -10 = missing"
+        int  tee_z "ALWAYS -1"
+        real fairway_x "SURVEY FEET, not normalized; 0 = missing on 46,762 rows"
+        real fairway_y "SURVEY FEET"
+        real fairway_z
+        text hole_image_url
+        text green_image_url "encodes season + event + 3-digit course id + hole"
+        text denorm_player "firstName lastName displayName shortName country countryFlag amateur total totalSort thru"
+    }
+
+    shots {
+        text tournamentId FK "801,101 rows, 65 cols"
+        text playerId FK
+        int  round
+        int  hole_num "note: hole_num, NOT holeNumber"
+        int  stroke_num "note: stroke_num, NOT strokeNumber"
+        text shot_type "STROKE 790,523 / DROP 6,657 / PENALTY 3,921 - never Putt"
+        int  is_final "1 if this stroke holed out"
+        text shot_distance "STRING, e.g. 326 yds or 24 ft 1 in. Distance MOVED, not distance to hole"
+        text distance_to_hole "same string formats; empty when holed"
+        text from_loc
+        text to_loc
+        text from_loc_code "OGR = on green = a putt. 327,360 rows"
+        text to_loc_code
+        text play_by_play
+        text shot_label
+        text markerText
+        text video_id
+        int  showMarker
+        int  groupShowMarker
+        real from_svx "SURVEY FEET. -1 = missing on 34,601 rows, almost all at the"
+        real from_svy "non-host courses of R2026002 and R2026004. USE THESE"
+        real from_svz "SURVEY FEET - a real elevation"
+        real to_svx "SURVEY FEET"
+        real to_svy
+        real to_svz
+        real green_from_ex "the API enhancedX - normalized green image, may fall outside 0-1"
+        real green_from_ey
+        real green_to_ex
+        real green_to_ey
+        real from_x "hole image 0-1; -1 = missing. legacy"
+        real from_y
+        real from_z "ALWAYS -1.0"
+        real to_x "hole image 0-1. legacy"
+        real to_y
+        real to_z "ALWAYS -1.0"
+        real green_from_x "green image 0-1; approx -10 = missing on 134,571 rows. legacy"
+        real green_from_y
+        real green_to_x
+        real green_to_y
+        int  putt_lip_out
+        real putt_distance_inches "the reliable putt length"
+        text putt_reconstruction "camera / simulation / NULL - confounded with outcome"
+        real radar_club_speed "NULL for putts; 306,266 shots carry radar"
+        real radar_ball_speed
+        real radar_smash_factor
+        real radar_apex_height
+        real radar_apex_range
+        real radar_apex_side
+        real radar_launch_spin
+        real radar_spin_axis
+        real radar_launch_angle_v
+        real radar_launch_angle_h
+        real radar_flight_time
+        text radar_impact_time "TEXT timestamp"
+        text radar_impact_ts "TEXT timestamp"
+        text denorm_player "firstName lastName displayName shortName country countryFlag amateur total totalSort thru"
+    }
+
+    putt_paths {
+        text tournamentId FK "29 events - missing R2026522, R2026541"
+        text playerId FK
+        int  round
+        int  holeNumber
+        int  strokeNumber
+        real x "SURVEY FEET"
+        real y "SURVEY FEET"
+        real z "SURVEY FEET"
+        real secondsSinceStart "ORDER BY this - rows are not stored in order. 4,148,494 rows"
+    }
+
+    trajectories {
+        text tournamentId FK "29 events - 306,264 rows"
+        text playerId FK
+        int  round
+        int  holeNumber
+        int  strokeNumber
+        text kind "always Flight"
+        text type "Incoming 171,511 / Broadcast 134,753"
+        text xFit "JSON poly coefficients, ASCENDING powers of t"
+        text yFit "JSON"
+        text zFit "JSON"
+        text spinRateFit "JSON"
+        text timeInterval "JSON start,end seconds"
+        text validTimeInterval "JSON"
+        text measuredTimeInterval "JSON"
+        text __typename "GraphQL residue"
+    }
+
+    trajectories_norm_v1 {
+        text key_cols "tournamentId playerId round holeNumber strokeNumber - 182,744 rows"
+        int  valid "1 for every row"
+        text yFit "JSON lateral. THERE IS NO xFit - normalization removed that axis"
+        text zFit "JSON vertical"
+        text timeInterval "JSON"
+        text validTimeInterval "JSON"
+        real carry
+        real carrySide
+        real curve
+        real maxHeight
+        real spinAxis
+        text windVelocity "JSON"
+    }
+
+    trajectories_norm_v2 {
+        text same_schema_as_v1 "182,744 rows; carry identical to v1 on every joined row"
+    }
+
+    assets {
+        text tournamentId PK "EMPTY TABLE - 0 rows as of 2026-09-20"
+        text asset_key PK "was 92 per tournament, e.g. green_glb_07"
+        text rel_path "path under the tournament dir"
+        int  hole "1-18, NULL for the 2 course-wide files"
+        text url "tourcast.pgatour.com/models/<tid>/3D_Assets/"
+        text local_path "said shot_data/ - the files are actually under data/assets/"
+        int  status
+        int  bytes
+        text etag
+        text last_modified
+        text downloaded_at
+        text checked_at
+    }
+
+    meta     ||--o{ courses              : "tournamentId"
+    meta     ||--o{ players              : "tournamentId"
+    meta     ||--o{ rounds               : "tournamentId"
+    meta     ||--o{ holes                : "tournamentId"
+    meta     ||--o{ shots                : "tournamentId"
+    courses  ||--o{ players              : "id to courseId"
+    players  ||--o{ rounds               : "id"
+    players  ||--o{ holes                : "id to playerId"
+    players  ||--o{ shots                : "id to playerId"
+    holes    ||--o{ shots                : "holeNumber to hole_num"
+    shots    ||--o{ putt_paths           : "hole_num/stroke_num to holeNumber/strokeNumber"
+    shots    ||--o{ trajectories         : "same rename; 1-2 rows, Incoming plus Broadcast"
+    shots    ||--o| trajectories_norm_v1 : "same key"
+    shots    ||--o| trajectories_norm_v2 : "same key"
+    meta     ||..o{ assets               : "tournamentId - manifest EMPTY, walk data/assets/"

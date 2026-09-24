@@ -10,8 +10,26 @@ website:
     right:
       - text: Home
         href: index.qmd
-      - text: AFL Model
-        href: http://rexcarruthers.github.io/Website/AFLMod
+      - text: "AFL"
+        menu:
+          - text: "Model"
+            href: http://rexcarruthers.github.io/Website/AFLMod
+          - text: "Brownlow Model"
+            href: https://rexcarruthers.github.io/Website/BLModel/
+          - text: "2025 Sim Shiny App"
+            href: https://rexapps.shinyapps.io/AFLSim2026/
+          - text: "Boids"
+            href: https://rexcarruthers.github.io/Website/Boids/
+      - text: "Golf"
+        menu:
+          - text: "Overview"
+            href: http://rexcarruthers.github.io/Website/AFLMod
+          - text: "Overview"
+            href: http://rexcarruthers.github.io/Website/AFLMod
+          - text: "Overview"
+            href: http://rexcarruthers.github.io/Website/AFLMod
+          - text: "Overview"
+            href: http://rexcarruthers.github.io/Website/AFLMod
         target: _blank
       - text: Projects
         href: projects/index.qmd
