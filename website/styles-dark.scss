@@ -57,6 +57,17 @@ $input-color:              $text;
 $input-border-color:       $border;
 $input-placeholder-color:  $muted;
 
+/* Navbar dropdown menus */
+$dropdown-bg:                 #1A1B2E;
+$dropdown-color:              $text;
+$dropdown-border-color:       $border;
+$dropdown-divider-bg:         $border;
+$dropdown-link-color:         $text;
+$dropdown-link-hover-color:   #FFFFFF;
+$dropdown-link-hover-bg:      $accent;
+$dropdown-link-active-color:  #FFFFFF;
+$dropdown-link-active-bg:     $accent;
+
 
 /*-- scss:rules --*/
 
@@ -139,6 +150,37 @@ div.quarto-post {
       background: #8B8CFF;
       border-radius: 2px;
     }
+  }
+}
+
+// Navbar dropdown menus (AFL / Golf, etc.)
+.navbar .dropdown-menu {
+  background-color: #1A1B2E;
+  border: 1px solid #2A2D38;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  padding: 0.35rem 0;
+
+  .dropdown-item {
+    color: #E7E8EC;
+    padding: 0.45rem 1rem;
+
+    &:hover,
+    &:focus {
+      color: #FFFFFF;
+      background-color: #8B8CFF;
+    }
+
+    &.active,
+    &:active {
+      color: #FFFFFF;
+      background-color: #8B8CFF;
+    }
+  }
+
+  .dropdown-divider,
+  .dropdown-header {
+    border-color: #2A2D38;
+    color: #9097A5;
   }
 }
 
