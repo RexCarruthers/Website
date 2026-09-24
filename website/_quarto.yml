@@ -23,13 +23,13 @@ website:
       - text: "Golf"
         menu:
           - text: "Overview"
-            href: http://rexcarruthers.github.io/Website/AFLMod
-          - text: "Overview"
-            href: http://rexcarruthers.github.io/Website/AFLMod
-          - text: "Overview"
-            href: http://rexcarruthers.github.io/Website/AFLMod
-          - text: "Overview"
-            href: http://rexcarruthers.github.io/Website/AFLMod
+            href: https://rexcarruthers.github.io/Website/golfoverview/
+          - text: "Masters Range"
+            href: https://rexcarruthers.github.io/Website/rangestory/
+          - text: "Putting Model"
+            href: https://rexcarruthers.github.io/Website/putting/
+          - text: "Putting Index"
+            href: https://rexcarruthers.github.io/Website/putting/courses/
         target: _blank
       - text: Projects
         href: projects/index.qmd
