@@ -1,0 +1,2495 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Rex Carruthers">
+
+<title>AFL Tracking and Event Sync</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="nwa_files/libs/clipboard/clipboard.min.js"></script>
+<script src="nwa_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="nwa_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="nwa_files/libs/quarto-html/popper.min.js"></script>
+<script src="nwa_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="nwa_files/libs/quarto-html/anchor.min.js"></script>
+<link href="nwa_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="nwa_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="nwa_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="nwa_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="nwa_files/libs/bootstrap/bootstrap-215b371544c282197b31c8aa00ce3677.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="nwa_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
+<link href="nwa_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-full">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#data" id="toc-data" class="nav-link active" data-scroll-target="#data">Data</a>
+  <ul class="collapse">
+  <li><a href="#tracking---1hz---single-quarter-from-2021" id="toc-tracking---1hz---single-quarter-from-2021" class="nav-link" data-scroll-target="#tracking---1hz---single-quarter-from-2021">Tracking - 1Hz - single quarter from 2021</a></li>
+  <li><a href="#event-possession-chain-data-from-the-torp-package" id="toc-event-possession-chain-data-from-the-torp-package" class="nav-link" data-scroll-target="#event-possession-chain-data-from-the-torp-package">Event possession chain data from the torp package</a></li>
+  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions">Assumptions</a></li>
+  </ul></li>
+  <li><a href="#needleman-wunch-algorithm-nwa" id="toc-needleman-wunch-algorithm-nwa" class="nav-link" data-scroll-target="#needleman-wunch-algorithm-nwa">Needleman-Wunch Algorithm (NWA)</a></li>
+  <li><a href="#segmentation" id="toc-segmentation" class="nav-link" data-scroll-target="#segmentation">Segmentation</a></li>
+  <li><a href="#nwa-implementation" id="toc-nwa-implementation" class="nav-link" data-scroll-target="#nwa-implementation">NWA Implementation</a></li>
+  <li><a href="#comparison" id="toc-comparison" class="nav-link" data-scroll-target="#comparison">Comparison</a></li>
+  <li><a href="#continuous-ball-position" id="toc-continuous-ball-position" class="nav-link" data-scroll-target="#continuous-ball-position">Continuous ball position</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content column-page-left" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">AFL Tracking and Event Sync</h1>
+</div>
+
+
+
+<div class="quarto-title-meta column-page-left">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Rex Carruthers </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="data" class="level2">
+<h2 class="anchored" data-anchor-id="data">Data</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(torp)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>chains <span class="ot">&lt;-</span> <span class="fu">load_chains</span>(<span class="dv">2021</span>, <span class="at">rounds =</span> <span class="dv">1</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>chains <span class="ot">&lt;-</span> chains <span class="sc">%&gt;%</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(home_team_team_name <span class="sc">==</span> <span class="st">"Essendon"</span>, period <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(display_order, description, period_seconds, player_id, team_id, x, y, final_state, initial_state, chain_number, home_team_direction_qtr1, shot_at_goal, behind_info)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>tracking <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"2021_R1_233022000-Q1.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<section id="tracking---1hz---single-quarter-from-2021" class="level3">
+<h3 class="anchored" data-anchor-id="tracking---1hz---single-quarter-from-2021">Tracking - 1Hz - single quarter from 2021</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(tracking) <span class="sc">%&gt;%</span> <span class="fu">kbl</span>() <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">match_id</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">period</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">period_secs</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">person_id</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">squad_name</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">x</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">onBench</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">233022000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">210012</td>
+<td style="text-align: left;">Hawthorn</td>
+<td style="text-align: right;">45.066353</td>
+<td style="text-align: right;">3.786000</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">233022000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">261323</td>
+<td style="text-align: left;">Hawthorn</td>
+<td style="text-align: right;">2.018142</td>
+<td style="text-align: right;">-2.626965</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">233022000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">270588</td>
+<td style="text-align: left;">Essendon</td>
+<td style="text-align: right;">66.768916</td>
+<td style="text-align: right;">-6.775860</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">233022000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">280737</td>
+<td style="text-align: left;">Hawthorn</td>
+<td style="text-align: right;">9.310737</td>
+<td style="text-align: right;">-2.208514</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">233022000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">280744</td>
+<td style="text-align: left;">Hawthorn</td>
+<td style="text-align: right;">-5.346918</td>
+<td style="text-align: right;">-5.452294</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">233022000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">290228</td>
+<td style="text-align: left;">Hawthorn</td>
+<td style="text-align: right;">65.659194</td>
+<td style="text-align: right;">-9.266390</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="event-possession-chain-data-from-the-torp-package" class="level3">
+<h3 class="anchored" data-anchor-id="event-possession-chain-data-from-the-torp-package">Event possession chain data from the <a href="https://github.com/peteowen1/torp">torp</a> package</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(chains) <span class="sc">%&gt;%</span> <span class="fu">kbl</span>() <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">display_order</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">description</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">period_seconds</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">player_id</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">team_id</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">x</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">y</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">final_state</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">initial_state</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">chain_number</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">home_team_direction_qtr1</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">shot_at_goal</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">behind_info</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">Centre Bounce</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">right</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">Ground Kick</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">CD_I261323</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-5</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">right</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">Gather</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">CD_I1002222</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">-9</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">right</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">Handball</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">CD_I1002222</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">-6</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">right</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">Handball Received</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">CD_I280737</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">right</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">Kick</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">CD_I280737</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">right</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="assumptions" class="level3">
+<h3 class="anchored" data-anchor-id="assumptions">Assumptions</h3>
+<ul>
+<li><p>Tracking data has already been cleaned and pre-processed</p>
+<ul>
+<li><p>First centre bounce starts at 0 seconds</p></li>
+<li><p>18 players from each team on the field at all times</p></li>
+<li><p>Initial parsing step if this isn’t the case</p></li>
+</ul></li>
+<li><p>Both data sets have errors in x and y positions and timing</p>
+<ul>
+<li><p>Tracking data will have positional errors but we will use them in the final output because the relative position of the players is what we care about and we will assume the positional error is roughly to equal for all players and in the same direction</p>
+<ul>
+<li>This won’t be the case especially with congested areas but it is the best we have</li>
+</ul></li>
+<li><p>Tracking data is collectively continuously and automatically we will assume that each observation is actually 1 second apart</p>
+<ul>
+<li>Just the starting point may be incorrect</li>
+</ul></li>
+<li><p>Event data relies on an operator to click to approximate the place and time an event will occur and won’t be consistent with either</p>
+<ul>
+<li>E.g. timestamps will lag behind when events happen quickly and then catch up when they slow down and for stoppages</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="needleman-wunch-algorithm-nwa" class="level2">
+<h2 class="anchored" data-anchor-id="needleman-wunch-algorithm-nwa">Needleman-Wunch Algorithm (NWA)</h2>
+<p><a href="https://www.researchgate.net/publication/394432453_The_Right_Way_to_Synchronize_Tracking_and_Event_Data_Using_Domain_Knowledge_to_Optimize_Algorithms">Oonk et al.</a></p>
+<ul>
+<li>Designed to align amino-acid sequences</li>
+</ul>
+<p><img src="images/clipboard-1640543983.png" class="img-fluid"></p>
+<ul>
+<li><p>Doesn’t rely on pre-trained models like other options (<a href="https://github.com/ML-KULeuven/ETSY">ETSY</a>)</p></li>
+<li><p>Ensures that the events happen in order and can exclude if incorrectly labelled</p></li>
+<li><p>Adjustable cost function that can be altered for AFL (time and distance from the expected)</p></li>
+<li><p>Compares all position of the relevant player at all frames with the expected event position and therefore could be slow for 25Hz data over multiple matches</p>
+<ul>
+<li>Can alleviate this be breaking it up into segments</li>
+</ul></li>
+</ul>
+</section>
+<section id="segmentation" class="level2">
+<h2 class="anchored" data-anchor-id="segmentation">Segmentation</h2>
+<ul>
+<li><p>The tracking data only differentiates quarters and this may still be too large</p></li>
+<li><p>Potential to train a model to recognise chain ends e.g.&nbsp;stoppages and goals but I don’t have the data and may introduce more errors</p></li>
+<li><p>Manually annotating too labour intensive</p></li>
+<li><p>One easily discernible event is the centre bounce due to the 6-6-6 rule and average approx. 4/quarter</p>
+<ul>
+<li><p>Both team centroids in the centre circle</p></li>
+<li><p>Minimum x &lt; -71 and maximum x &gt; 71 - due to players in the goal square</p></li>
+<li><p>Team convex surface area consistent</p></li>
+</ul></li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Identify centre bounces</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>hull_summary <span class="ot">&lt;-</span> tracking <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(onBench <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(squad_name, period_secs) <span class="sc">%&gt;%</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_x =</span> <span class="fu">min</span>(x),</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_x =</span> <span class="fu">max</span>(x),</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">centroid_x =</span> <span class="fu">mean</span>(x),</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">centroid_y =</span> <span class="fu">mean</span>(y),</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">hull =</span> <span class="fu">list</span>({</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>      i <span class="ot">&lt;-</span> <span class="fu">chull</span>(x, y)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">tibble</span>(<span class="at">x =</span> x[i], <span class="at">y =</span> y[i])</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    }),</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">area =</span> <span class="fu">map_dbl</span>(hull, <span class="sc">~</span> <span class="fu">abs</span>(<span class="fu">sum</span>(.x<span class="sc">$</span>x <span class="sc">*</span> <span class="fu">c</span>(.x<span class="sc">$</span>y[<span class="sc">-</span><span class="dv">1</span>], .x<span class="sc">$</span>y[<span class="dv">1</span>]) <span class="sc">-</span> <span class="fu">c</span>(.x<span class="sc">$</span>x[<span class="sc">-</span><span class="dv">1</span>], .x<span class="sc">$</span>x[<span class="dv">1</span>]) <span class="sc">*</span> .x<span class="sc">$</span>y) <span class="sc">/</span> <span class="dv">2</span>))</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>hull_summary <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hull_summary,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>                          tracking <span class="sc">%&gt;%</span> <span class="fu">select</span>(period_secs) <span class="sc">%&gt;%</span> <span class="fu">unique</span>(),</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>                          <span class="at">by =</span> <span class="st">"period_secs"</span>) </span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>hull_summary <span class="ot">&lt;-</span> hull_summary <span class="sc">%&gt;%</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(period_secs) <span class="sc">%&gt;%</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ballup_flag =</span> <span class="fu">all</span>(min_x <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">71</span> <span class="sc">&amp;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>                             max_x <span class="sc">&gt;</span> <span class="dv">71</span> <span class="sc">&amp;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">between</span>(centroid_x, <span class="sc">-</span><span class="dv">10</span>, <span class="dv">10</span>) <span class="sc">&amp;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">between</span>(centroid_y, <span class="sc">-</span><span class="dv">10</span>, <span class="dv">10</span>) <span class="sc">&amp;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">between</span>(area, <span class="dv">3600</span>, <span class="dv">4400</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>ballup <span class="ot">&lt;-</span> hull_summary <span class="sc">%&gt;%</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(period_secs, ballup_flag) <span class="sc">%&gt;%</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(period_secs) <span class="sc">%&gt;%</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">run =</span> <span class="fu">cumsum</span>(ballup_flag <span class="sc">!=</span> <span class="fu">lag</span>(ballup_flag, <span class="at">default =</span> <span class="sc">!</span><span class="fu">first</span>(ballup_flag)))) <span class="sc">%&gt;%</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(ballup_flag) <span class="sc">%&gt;%</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(run) <span class="sc">%&gt;%</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">start =</span> <span class="fu">min</span>(period_secs), <span class="at">end =</span> <span class="fu">max</span>(period_secs), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">merge_grp =</span> <span class="fu">cumsum</span>(start <span class="sc">-</span> <span class="fu">lag</span>(end, <span class="at">default =</span> <span class="sc">-</span><span class="dv">999999</span>L) <span class="sc">&gt;</span> <span class="dv">30</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(merge_grp) <span class="sc">%&gt;%</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">start =</span> <span class="fu">min</span>(start), <span class="at">end =</span> <span class="fu">max</span>(end), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>merge_grp)</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="co"># Segment boundaries from event data</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>segments <span class="ot">&lt;-</span> chains <span class="sc">%&gt;%</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(chain_number) <span class="sc">%&gt;%</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_secs =</span> <span class="fu">min</span>(period_seconds),</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">end_secs   =</span> <span class="fu">max</span>(period_seconds),</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">initial    =</span> <span class="fu">first</span>(initial_state),</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">final      =</span> <span class="fu">first</span>(final_state),</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_events   =</span> <span class="fu">n</span>(),</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ballup <span class="sc">%&gt;%</span> <span class="fu">kbl</span>(<span class="at">caption =</span> <span class="st">"Ball Ups in the first quarter"</span>) <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<caption>Ball Ups in the first quarter</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">start</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">end</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">86</td>
+<td style="text-align: right;">104</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">630</td>
+<td style="text-align: right;">636</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">807</td>
+<td style="text-align: right;">817</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1137</td>
+<td style="text-align: right;">1143</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1345</td>
+<td style="text-align: right;">1352</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Matches the goals + the opening bounce on the official <a href="https://www.afl.com.au/afl/matches/2994">website</a></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ground <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">160</span>, <span class="dv">129</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>angle <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span>pi, pi, <span class="at">length =</span> <span class="dv">50</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>oval <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y =</span> ground[<span class="dv">2</span>]<span class="sc">/</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">cos</span>(angle), <span class="at">x =</span> ground[<span class="dv">1</span>]<span class="sc">/</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">sin</span>(angle))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating 50m arcs</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>fa <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y =</span> <span class="fu">seq</span>(<span class="at">from =</span> <span class="sc">-</span><span class="fl">44.7</span>, <span class="at">to =</span> <span class="fl">44.7</span>, <span class="at">by =</span> <span class="fl">0.1</span>)) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">x =</span> <span class="fu">sqrt</span>(<span class="dv">50</span><span class="sc">^</span><span class="dv">2</span><span class="sc">-</span>y<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>fa <span class="ot">&lt;-</span> fa <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">x =</span> <span class="sc">-</span>(x<span class="dv">-80</span>), <span class="at">y =</span> y)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>fd <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y =</span> <span class="fu">seq</span>(<span class="at">from =</span> <span class="sc">-</span><span class="fl">44.7</span>, <span class="at">to =</span> <span class="fl">44.7</span>, <span class="at">by =</span> <span class="fl">0.1</span>)) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">x =</span> <span class="fu">sqrt</span>(<span class="dv">50</span><span class="sc">^</span><span class="dv">2</span><span class="sc">-</span>y<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>fd <span class="ot">&lt;-</span> fd <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">x =</span> (x<span class="dv">-80</span>), <span class="at">y =</span> y)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>hulls <span class="ot">&lt;-</span> hull_summary <span class="sc">%&gt;%</span> <span class="fu">unnest</span>(hull) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(period_secs <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">subset</span>(tracking, period_secs <span class="sc">==</span> <span class="dv">0</span> <span class="sc">&amp;</span> onBench <span class="sc">==</span> <span class="dv">0</span>), <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y)) <span class="sc">+</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_polygon</span>(<span class="at">data =</span> oval, <span class="at">alpha =</span> <span class="fl">0.1</span>, <span class="at">fill =</span> <span class="st">'#4DBD33'</span>) <span class="sc">+</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> fa, <span class="at">orientation =</span> <span class="st">"y"</span>, <span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> fd, <span class="at">orientation =</span> <span class="st">"y"</span>, <span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="at">xmin =</span> <span class="sc">-</span><span class="dv">25</span>, <span class="at">xmax =</span> <span class="dv">25</span>, <span class="at">ymin =</span> <span class="sc">-</span><span class="dv">25</span>, <span class="at">ymax =</span> <span class="dv">25</span>),</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill =</span> <span class="st">"transparent"</span>, <span class="at">color =</span> <span class="st">'black'</span>, <span class="at">inherit.aes =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="at">xmin =</span> <span class="dv">71</span>, <span class="at">xmax =</span> <span class="dv">80</span>, <span class="at">ymin =</span> <span class="sc">-</span><span class="fl">3.2</span>, <span class="at">ymax =</span> <span class="fl">3.2</span>),</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill =</span> <span class="st">"transparent"</span>, <span class="at">color =</span> <span class="st">'black'</span>, <span class="at">inherit.aes =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="at">xmin =</span> <span class="sc">-</span><span class="dv">80</span>, <span class="at">xmax =</span> <span class="sc">-</span><span class="dv">71</span>, <span class="at">ymin =</span> <span class="sc">-</span><span class="fl">3.2</span>, <span class="at">ymax =</span> <span class="fl">3.2</span>),</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill =</span> <span class="st">"transparent"</span>, <span class="at">color =</span> <span class="st">'black'</span>, <span class="at">inherit.aes =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_polygon</span>(<span class="at">data =</span> hulls, <span class="fu">aes</span>(<span class="at">fill =</span> squad_name, <span class="at">group =</span> squad_name), <span class="at">alpha =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">col =</span> squad_name)) <span class="sc">+</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">subset</span>(hull_summary, period_secs <span class="sc">==</span> <span class="dv">0</span>),</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>             <span class="fu">aes</span>(<span class="at">x =</span> centroid_x, <span class="at">y =</span> centroid_y, <span class="at">col =</span> squad_name),</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">3</span>, <span class="at">shape =</span> <span class="dv">4</span>, <span class="at">stroke =</span> <span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="nwa_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="nwa-implementation" class="level2">
+<h2 class="anchored" data-anchor-id="nwa-implementation">NWA Implementation</h2>
+<ul>
+<li><p>Proof of concept just using the first segment of the game</p>
+<ul>
+<li><p>Flipped the away team as they were both attacking the same direction in the event data</p></li>
+<li><p>Removed event that were for information only and caused double ups</p></li>
+<li><p>Reduced to 9 events that happen across 86 seconds/frames</p></li>
+</ul></li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Strip CD_I prefix from chain player_ids to match tracking</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>chains <span class="ot">&lt;-</span> chains <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">player_id_num =</span> <span class="fu">as.integer</span>(<span class="fu">str_remove</span>(player_id, <span class="st">"CD_I"</span>)))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Define segment boundaries from your CB detector</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#    Use START of each CB window as the segment boundary</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>cb_starts <span class="ot">&lt;-</span> ballup<span class="sc">$</span>start  <span class="co"># 0, 86, 626, 807, 1137, 1343</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>seg_bounds <span class="ot">&lt;-</span> <span class="fu">c</span>(cb_starts, <span class="fu">max</span>(tracking<span class="sc">$</span>period_secs) <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Segment 1: tracking 0 → 85 inclusive, events = chain_number == 1</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>seg1_tracking <span class="ot">&lt;-</span> tracking <span class="sc">%&gt;%</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(period <span class="sc">==</span> <span class="dv">1</span>, period_secs <span class="sc">&gt;=</span> <span class="dv">0</span>, period_secs <span class="sc">&lt;</span> <span class="dv">86</span>, onBench <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>seg1_events <span class="ot">&lt;-</span> chains <span class="sc">%&gt;%</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(chain_number <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove information events (double ups)</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>tag_descriptions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Kick Into F50"</span>,</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Kick Inside 50 Result"</span>,</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Contest Target"</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>seg1_clean <span class="ot">&lt;-</span> seg1_events <span class="sc">%&gt;%</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>description <span class="sc">%in%</span> tag_descriptions) <span class="sc">%&gt;%</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(display_order) <span class="sc">%&gt;%</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">x =</span> <span class="fu">ifelse</span>(team_id <span class="sc">==</span> <span class="st">"CD_T80"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(team_id), <span class="sc">-</span>x, x),</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> <span class="fu">ifelse</span>(team_id <span class="sc">==</span> <span class="st">"CD_T80"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(team_id), y, y))</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>tracking_dt <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(tracking)[</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  period <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;</span> onBench <span class="sc">==</span> <span class="dv">0</span>,</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  .(person_id, period_secs, x, y)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="fu">setkey</span>(tracking_dt, person_id, period_secs)</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Define segment frames and CB window</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>frames     <span class="ot">&lt;-</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">85</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>cb_window  <span class="ot">&lt;-</span> ballup<span class="sc">$</span>start[<span class="dv">1</span>]<span class="sc">:</span>ballup<span class="sc">$</span>end[<span class="dv">1</span>]   <span class="co"># 0:1 for segment 1</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>n_events   <span class="ot">&lt;-</span> <span class="fu">nrow</span>(seg1_clean)</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>n_frames   <span class="ot">&lt;-</span> <span class="fu">length</span>(frames)</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Build cost matrix via vectorised join</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">1.0</span>   <span class="co"># 1 second of drift = 1 metre of spatial mismatch</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">event_idx  =</span> <span class="fu">seq_len</span>(n_events),</span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">frame_secs =</span> frames,</span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">KEEP.OUT.ATTRS =</span> <span class="cn">FALSE</span></span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">pid           =</span> seg1_clean<span class="sc">$</span>player_id_num[event_idx],</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">ex            =</span> seg1_clean<span class="sc">$</span>x[event_idx],</span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">ey            =</span> seg1_clean<span class="sc">$</span>y[event_idx],</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">expected_secs =</span> seg1_clean<span class="sc">$</span>period_seconds[event_idx]</span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_tibble</span>(tracking_dt),</span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"pid"</span> <span class="ot">=</span> <span class="st">"person_id"</span>, <span class="st">"frame_secs"</span> <span class="ot">=</span> <span class="st">"period_secs"</span>)</span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">spatial_cost  =</span> <span class="fu">sqrt</span>((ex <span class="sc">-</span> x)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (ey <span class="sc">-</span> y)<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>    <span class="at">temporal_cost =</span> lambda <span class="sc">*</span> <span class="fu">abs</span>(expected_secs <span class="sc">-</span> frame_secs),</span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>    <span class="at">cost          =</span> spatial_cost <span class="sc">+</span> temporal_cost</span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a>cost_matrix <span class="ot">&lt;-</span> grid <span class="sc">|&gt;</span></span>
+<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(event_idx, frame_secs, cost) <span class="sc">|&gt;</span></span>
+<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> frame_secs, <span class="at">values_from =</span> cost) <span class="sc">|&gt;</span></span>
+<span id="cb7-71"><a href="#cb7-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>event_idx) <span class="sc">|&gt;</span></span>
+<span id="cb7-72"><a href="#cb7-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.matrix</span>()</span>
+<span id="cb7-73"><a href="#cb7-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-74"><a href="#cb7-74" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-apply CB and NA handling</span></span>
+<span id="cb7-75"><a href="#cb7-75" aria-hidden="true" tabindex="-1"></a>cb_row <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="fu">is.na</span>(seg1_clean<span class="sc">$</span>player_id_num))</span>
+<span id="cb7-76"><a href="#cb7-76" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(cb_row) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb7-77"><a href="#cb7-77" aria-hidden="true" tabindex="-1"></a>  cost_matrix[cb_row, ] <span class="ot">&lt;-</span> <span class="cn">Inf</span></span>
+<span id="cb7-78"><a href="#cb7-78" aria-hidden="true" tabindex="-1"></a>  cost_matrix[cb_row, <span class="fu">as.character</span>(cb_window)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb7-79"><a href="#cb7-79" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-80"><a href="#cb7-80" aria-hidden="true" tabindex="-1"></a>cost_matrix[<span class="fu">is.na</span>(cost_matrix)] <span class="ot">&lt;-</span> <span class="cn">Inf</span></span>
+<span id="cb7-81"><a href="#cb7-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-82"><a href="#cb7-82" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Handle Centre Bounce specially</span></span>
+<span id="cb7-83"><a href="#cb7-83" aria-hidden="true" tabindex="-1"></a>cb_row <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="fu">is.na</span>(seg1_clean<span class="sc">$</span>player_id_num))</span>
+<span id="cb7-84"><a href="#cb7-84" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(cb_row) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb7-85"><a href="#cb7-85" aria-hidden="true" tabindex="-1"></a>  cost_matrix[cb_row, ] <span class="ot">&lt;-</span> <span class="cn">Inf</span></span>
+<span id="cb7-86"><a href="#cb7-86" aria-hidden="true" tabindex="-1"></a>  cost_matrix[cb_row, <span class="fu">as.character</span>(cb_window)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb7-87"><a href="#cb7-87" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-88"><a href="#cb7-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-89"><a href="#cb7-89" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. Missing tracking (player off-field, etc.) → Inf</span></span>
+<span id="cb7-90"><a href="#cb7-90" aria-hidden="true" tabindex="-1"></a>cost_matrix[<span class="fu">is.na</span>(cost_matrix)] <span class="ot">&lt;-</span> <span class="cn">Inf</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>seg1_clean <span class="sc">%&gt;%</span> <span class="fu">select</span>(description<span class="sc">:</span>chain_number) <span class="sc">%&gt;%</span> <span class="fu">kbl</span>() <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">description</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">period_seconds</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">player_id</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">team_id</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">x</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">y</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">final_state</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">initial_state</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">chain_number</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Centre Bounce</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Ground Kick</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">CD_I261323</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-2</td>
+<td style="text-align: right;">-5</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Gather</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">CD_I1002222</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-16</td>
+<td style="text-align: right;">-9</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Handball</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">CD_I1002222</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-16</td>
+<td style="text-align: right;">-6</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Handball Received</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">CD_I280737</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-13</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Kick</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">CD_I280737</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-21</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Contested Mark</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: left;">CD_I291327</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-68</td>
+<td style="text-align: right;">-4</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Kick</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: left;">CD_I291327</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-61</td>
+<td style="text-align: right;">-7</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Goal</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: left;">CD_I291327</td>
+<td style="text-align: left;">CD_T80</td>
+<td style="text-align: right;">-61</td>
+<td style="text-align: right;">-7</td>
+<td style="text-align: left;">goal</td>
+<td style="text-align: left;">centreBounce</td>
+<td style="text-align: right;">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li><p>Cost function currently using lambda = 1.0 so time and euclidean distance are penalised the same from the expected (event)</p>
+<ul>
+<li>Originally didn’t include time but players often run over the same spot in AFL so anchoring to the event was important</li>
+</ul></li>
+<li><p>The heatmap shows sequential bright spots where the cost is lowest which means we are on the right track</p>
+<ul>
+<li>No idea why the kick and contested mark are flipped</li>
+</ul></li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Quick heatmap to eyeball the cost surface</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>cost_long <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(cost_matrix) <span class="sc">|&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_idx =</span> <span class="fu">row_number</span>(),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">description =</span> seg1_clean<span class="sc">$</span>description) <span class="sc">|&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="fu">c</span>(event_idx, description),</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"frame"</span>, <span class="at">values_to =</span> <span class="st">"cost"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">frame =</span> <span class="fu">as.integer</span>(frame),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">cost =</span> <span class="fu">pmin</span>(cost, <span class="dv">50</span>))   <span class="co"># cap Inf for plotting</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(cost_long, <span class="fu">aes</span>(frame, <span class="fu">reorder</span>(description, <span class="sc">-</span>event_idx), <span class="at">fill =</span> cost)) <span class="sc">+</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">na.value =</span> <span class="st">"grey90"</span>) <span class="sc">+</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"period_secs"</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">fill =</span> <span class="st">"cost"</span>) <span class="sc">+</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="nwa_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>nw_align <span class="ot">&lt;-</span> <span class="cf">function</span>(cost_matrix, gap_penalty) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  n_events <span class="ot">&lt;-</span> <span class="fu">nrow</span>(cost_matrix)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  n_frames <span class="ot">&lt;-</span> <span class="fu">ncol</span>(cost_matrix)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># dp[i, j] = min cost aligning events 1..i with frames 1..j</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># where frame skips at the START and </span><span class="re">END</span><span class="co"> are free, but event skips cost gap_penalty</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  dp <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">Inf</span>, n_events <span class="sc">+</span> <span class="dv">1</span>, n_frames <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  tb <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>L,  n_events <span class="sc">+</span> <span class="dv">1</span>, n_frames <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  dp[<span class="dv">1</span>, ] <span class="ot">&lt;-</span> <span class="dv">0</span>          <span class="co"># leading frame skips are free (event hasn't started)</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  tb[<span class="dv">1</span>, ] <span class="ot">&lt;-</span> <span class="dv">3</span>L         <span class="co"># came from the left</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  tb[<span class="dv">1</span>, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  dp[, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">cumsum</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">rep</span>(gap_penalty, n_events)))  <span class="co"># leading event skips cost</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  tb[<span class="dv">2</span><span class="sc">:</span>(n_events <span class="sc">+</span> <span class="dv">1</span>), <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">2</span>L</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>(n_events <span class="sc">+</span> <span class="dv">1</span>)) {</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>(n_frames <span class="sc">+</span> <span class="dv">1</span>)) {</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>      m <span class="ot">&lt;-</span> dp[i <span class="sc">-</span> <span class="dv">1</span>, j <span class="sc">-</span> <span class="dv">1</span>] <span class="sc">+</span> cost_matrix[i <span class="sc">-</span> <span class="dv">1</span>, j <span class="sc">-</span> <span class="dv">1</span>]   <span class="co"># match</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>      e <span class="ot">&lt;-</span> dp[i <span class="sc">-</span> <span class="dv">1</span>, j]     <span class="sc">+</span> gap_penalty                 <span class="co"># skip event</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>      f <span class="ot">&lt;-</span> dp[i,     j <span class="sc">-</span> <span class="dv">1</span>]                               <span class="co"># skip frame (FREE)</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>      best <span class="ot">&lt;-</span> <span class="fu">which.min</span>(<span class="fu">c</span>(m, e, f))</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>      dp[i, j] <span class="ot">&lt;-</span> <span class="fu">c</span>(m, e, f)[best]</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>      tb[i, j] <span class="ot">&lt;-</span> best</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>  <span class="co"># End-gap-free on frames: pick best j in last row</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>  j <span class="ot">&lt;-</span> <span class="fu">which.min</span>(dp[n_events <span class="sc">+</span> <span class="dv">1</span>, ])</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>  i <span class="ot">&lt;-</span> n_events <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, n_events)</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>  <span class="cf">while</span> (i <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    move <span class="ot">&lt;-</span> tb[i, j]</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (move <span class="sc">==</span> <span class="dv">1</span>L) {                            <span class="co"># match</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>      out[[i <span class="sc">-</span> <span class="dv">1</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">event =</span> <span class="fu">as.integer</span>(i <span class="sc">-</span> <span class="dv">1</span>), <span class="at">frame =</span> <span class="fu">as.integer</span>(j <span class="sc">-</span> <span class="dv">1</span>))</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>      i <span class="ot">&lt;-</span> i <span class="sc">-</span> <span class="dv">1</span>; j <span class="ot">&lt;-</span> j <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (move <span class="sc">==</span> <span class="dv">2</span>L) {                     <span class="co"># event skipped</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>      out[[i <span class="sc">-</span> <span class="dv">1</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">event =</span> <span class="fu">as.integer</span>(i <span class="sc">-</span> <span class="dv">1</span>), <span class="at">frame =</span> <span class="cn">NA_integer_</span>)</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>      i <span class="ot">&lt;-</span> i <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (move <span class="sc">==</span> <span class="dv">3</span>L) {                     <span class="co"># frame skipped</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>      j <span class="ot">&lt;-</span> j <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"bad traceback at i="</span>, i, <span class="st">" j="</span>, j)</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">event_idx     =</span> <span class="fu">vapply</span>(out, <span class="st">`</span><span class="at">[[</span><span class="st">`</span>, <span class="fu">integer</span>(<span class="dv">1</span>), <span class="st">"event"</span>),</span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">matched_frame =</span> <span class="fu">vapply</span>(out, <span class="st">`</span><span class="at">[[</span><span class="st">`</span>, <span class="fu">integer</span>(<span class="dv">1</span>), <span class="st">"frame"</span>)</span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">nw_align</span>(cost_matrix, <span class="at">gap_penalty =</span> <span class="dv">10</span>)</span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> result <span class="sc">%&gt;%</span></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">description   =</span> seg1_clean<span class="sc">$</span>description[event_idx],</span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">expected_secs =</span> seg1_clean<span class="sc">$</span>period_seconds[event_idx],</span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">matched_secs  =</span> matched_frame <span class="sc">-</span> <span class="dv">1</span>,</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">drift         =</span> matched_secs <span class="sc">-</span> expected_secs,</span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">match_cost    =</span> <span class="fu">mapply</span>(<span class="cf">function</span>(i, j) {</span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">is.na</span>(j)) <span class="cn">NA</span> <span class="cf">else</span> cost_matrix[i, j]</span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>    }, event_idx, matched_frame)</span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>result <span class="sc">%&gt;%</span> <span class="fu">kbl</span>() <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">event_idx</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">matched_frame</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">description</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">expected_secs</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">matched_secs</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">drift</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">match_cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">Centre Bounce</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">Ground Kick</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">-3</td>
+<td style="text-align: right;">4.341972</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">Gather</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">-4</td>
+<td style="text-align: right;">5.398838</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">Handball</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">-3</td>
+<td style="text-align: right;">3.668087</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">Handball Received</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">-4</td>
+<td style="text-align: right;">8.792500</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">Kick</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">-3</td>
+<td style="text-align: right;">5.101967</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: left;">Contested Mark</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">-4</td>
+<td style="text-align: right;">6.275902</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: left;">Kick</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2.215584</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: left;">Goal</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">-2</td>
+<td style="text-align: right;">4.876714</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="comparison" class="level2">
+<h2 class="anchored" data-anchor-id="comparison">Comparison</h2>
+<p>I watched the actual vision of the game on AFL.com and recorded as accurately as I could when the events happened relative to the ball up.</p>
+<ul>
+<li>Only 1 second increments but matches the 1Hz data far more closely:</li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>hand_times <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">9</span>, <span class="dv">12</span>, <span class="dv">46</span>, <span class="dv">47</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>result <span class="sc">%&gt;%</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">hand =</span> hand_times,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">err_naive =</span> <span class="fu">abs</span>(expected_secs <span class="sc">-</span> hand),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">err_synced =</span> <span class="fu">abs</span>(matched_secs <span class="sc">-</span> hand)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mae_naive  =</span> <span class="fu">mean</span>(err_naive),</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">mae_synced =</span> <span class="fu">mean</span>(err_synced)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(<span class="at">digits =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">mae_naive</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">mae_synced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2.889</td>
+<td style="text-align: right;">0.778</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="continuous-ball-position" class="level2">
+<h2 class="anchored" data-anchor-id="continuous-ball-position">Continuous ball position</h2>
+<ul>
+<li>We have now synced the time that the event happened but there still may be a disconnect between the position of the ball and the player making the action depending on the error of the click from the operator and the tracking data and how well the times are synced</li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 0: ACTION CLASSIFICATION</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Edit these lists to refine behaviour. Adding a new description requires</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># putting it in exactly one list (or tag_actions to ignore it).</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>tag_actions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Kick Inside 50 Result"</span>, <span class="st">"Kick Into F50"</span>, <span class="st">"Contest Target"</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Free For"</span>, <span class="st">"Free For: In Possession"</span>, <span class="st">"Free Advantage"</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Ball Up Call"</span>, <span class="st">"Kickin play on"</span>, <span class="st">"Kickin short"</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>disposal_actions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Kick"</span>, <span class="st">"Handball"</span>, <span class="st">"Ground Kick"</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>reception_actions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Uncontested Mark"</span>, <span class="st">"Contested Mark"</span>, <span class="st">"Mark On Lead"</span>,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Handball Received"</span>,</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Gather"</span>, <span class="st">"Gather From Hitout"</span>, <span class="st">"Gather from Opposition"</span>,</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Hard Ball Get"</span>, <span class="st">"Hard Ball Get Crumb"</span>,</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Loose Ball Get"</span>, <span class="st">"Loose Ball Get Crumb"</span>,</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Bounce"</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>stoppage_actions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Centre Bounce"</span>, <span class="st">"Ball Up"</span>, <span class="st">"Throw In"</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>terminal_actions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Goal"</span>, <span class="st">"Behind"</span>, <span class="st">"Out of Bounds"</span>, <span class="st">"Out on Full"</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>contested_actions <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Spoil"</span>, <span class="st">"Contested Knock On"</span>, <span class="st">"Mark Dropped"</span>, <span class="st">"Mark Fumbled"</span></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>classify_action <span class="ot">&lt;-</span> <span class="cf">function</span>(desc) {</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">case_when</span>(</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>    desc <span class="sc">%in%</span> tag_actions       <span class="sc">~</span> <span class="st">"tag"</span>,</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>    desc <span class="sc">%in%</span> disposal_actions  <span class="sc">~</span> <span class="st">"disposal"</span>,</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>    desc <span class="sc">%in%</span> reception_actions <span class="sc">~</span> <span class="st">"reception"</span>,</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>    desc <span class="sc">%in%</span> stoppage_actions  <span class="sc">~</span> <span class="st">"stoppage"</span>,</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>    desc <span class="sc">%in%</span> terminal_actions  <span class="sc">~</span> <span class="st">"terminal"</span>,</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>    desc <span class="sc">%in%</span> contested_actions <span class="sc">~</span> <span class="st">"contested"</span>,</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span>                        <span class="sc">~</span> <span class="st">"unknown"</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 1: CLEAN SEGMENT EVENTS (drop tag-only rows, flip away-team x)</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>seg1_clean <span class="ot">&lt;-</span> seg1_events <span class="sc">%&gt;%</span></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>description <span class="sc">%in%</span> tag_actions) <span class="sc">%&gt;%</span></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(display_order) <span class="sc">%&gt;%</span></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="fu">ifelse</span>(team_id <span class="sc">==</span> <span class="st">"CD_T80"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(team_id), <span class="sc">-</span>x, x),</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">player_id_num =</span> <span class="fu">as.integer</span>(<span class="fu">str_remove</span>(player_id, <span class="st">"CD_I"</span>))</span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>synced_events <span class="ot">&lt;-</span> result <span class="sc">%&gt;%</span></span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(matched_secs)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true" tabindex="-1"></a>    <span class="at">period      =</span> <span class="dv">1</span>L,</span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true" tabindex="-1"></a>    <span class="at">period_secs =</span> <span class="fu">as.integer</span>(matched_secs),</span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true" tabindex="-1"></a>    <span class="at">event_x     =</span> seg1_clean<span class="sc">$</span>x[event_idx],</span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true" tabindex="-1"></a>    <span class="at">event_y     =</span> seg1_clean<span class="sc">$</span>y[event_idx],</span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true" tabindex="-1"></a>    <span class="at">player_id   =</span> seg1_clean<span class="sc">$</span>player_id_num[event_idx],</span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true" tabindex="-1"></a>    <span class="at">state       =</span> <span class="fu">classify_action</span>(description)</span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(period, period_secs, description, state,</span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true" tabindex="-1"></a>         event_x, event_y, player_id) <span class="sc">%&gt;%</span></span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(period, period_secs)</span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true" tabindex="-1"></a>synced <span class="ot">&lt;-</span> synced_events <span class="sc">%&gt;%</span></span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true" tabindex="-1"></a>    tracking <span class="sc">%&gt;%</span></span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(period_secs, person_id,</span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true" tabindex="-1"></a>             <span class="at">player_x =</span> x, <span class="at">player_y =</span> y),</span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"period_secs"</span>, <span class="st">"player_id"</span> <span class="ot">=</span> <span class="st">"person_id"</span>)</span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true" tabindex="-1"></a>    <span class="at">spatial_residual =</span> <span class="fu">sqrt</span>((event_x <span class="sc">-</span> player_x)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span></span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true" tabindex="-1"></a>                              (event_y <span class="sc">-</span> player_y)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(synced<span class="sc">$</span>spatial_residual, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2.208945</code></pre>
+</div>
+</div>
+<ul>
+<li><p>This feels good for 1Hz data but I think because of the decisions made below it will be best to move that point towards the tracking data location</p>
+<ul>
+<li><p>Spreads the error over multiple frames leading up to where the event happens</p></li>
+<li><p>“Wisdom of the crowds” approach to average them (also mentioned by CD as the way they do it)</p></li>
+<li><p><em>This hasn’t been implemented yet</em></p></li>
+</ul></li>
+<li><p>Now we have the position and time that the events occur we can interpolate the position of the ball between them using logic about it’s current state from the event</p>
+<ul>
+<li><p>Event moment - Known location/time</p></li>
+<li><p>In possession - Follows the relevant players tracking data position</p></li>
+<li><p>In flight - linear interpolation</p></li>
+<li><p>In dispute - linear interpolation</p></li>
+<li><p>Out of play - NA</p></li>
+</ul></li>
+<li><p>This logic will have to get updated once I understand the events more clearly</p>
+<ul>
+<li>Currently just know it makes sense for this segment</li>
+</ul></li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 5: PER-FRAME SKELETON WITH BRACKETING EVENT INFO</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>all_frames <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">period      =</span> <span class="dv">1</span>L,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">period_secs =</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">85</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>ball <span class="ot">&lt;-</span> all_frames <span class="sc">%&gt;%</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_event_idx =</span> <span class="fu">pmax</span>(<span class="fu">findInterval</span>(period_secs, synced_events<span class="sc">$</span>period_secs), <span class="dv">1</span>L),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">next_event_idx =</span> <span class="fu">pmin</span>(prev_event_idx <span class="sc">+</span> <span class="dv">1</span>L, <span class="fu">nrow</span>(synced_events))</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_state  =</span> synced_events<span class="sc">$</span>state[prev_event_idx],</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_secs   =</span> synced_events<span class="sc">$</span>period_secs[prev_event_idx],</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_x      =</span> synced_events<span class="sc">$</span>event_x[prev_event_idx],</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_y      =</span> synced_events<span class="sc">$</span>event_y[prev_event_idx],</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_player =</span> synced_events<span class="sc">$</span>player_id[prev_event_idx],</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_desc   =</span> synced_events<span class="sc">$</span>description[prev_event_idx],</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">next_state  =</span> synced_events<span class="sc">$</span>state[next_event_idx],</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">next_secs   =</span> synced_events<span class="sc">$</span>period_secs[next_event_idx],</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">next_x      =</span> synced_events<span class="sc">$</span>event_x[next_event_idx],</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">next_y      =</span> synced_events<span class="sc">$</span>event_y[next_event_idx]</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 6: JOIN EVENT-MOMENT DATA AND CARRIER TRACKING POSITIONS</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>ball <span class="ot">&lt;-</span> ball <span class="sc">%&gt;%</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    synced_events <span class="sc">%&gt;%</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(period, period_secs,</span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>             <span class="at">ev_x      =</span> event_x,</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>             <span class="at">ev_y      =</span> event_y,</span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>             <span class="at">ev_player =</span> player_id),</span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"period"</span>, <span class="st">"period_secs"</span>)</span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>player_xy <span class="ot">&lt;-</span> tracking <span class="sc">%&gt;%</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(period <span class="sc">==</span> <span class="dv">1</span>, onBench <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(period, period_secs, person_id,</span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>         <span class="at">player_track_x =</span> x, <span class="at">player_track_y =</span> y)</span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>ball <span class="ot">&lt;-</span> ball <span class="sc">%&gt;%</span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>    player_xy,</span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"period"</span>, <span class="st">"period_secs"</span>, <span class="st">"prev_player"</span> <span class="ot">=</span> <span class="st">"person_id"</span>)</span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 7: FRAME STATE CLASSIFICATION</span></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>ball <span class="ot">&lt;-</span> ball <span class="sc">%&gt;%</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">is_event_frame =</span> <span class="sc">!</span><span class="fu">is.na</span>(ev_x),</span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">pre_segment    =</span> period_secs <span class="sc">&lt;</span> <span class="fu">min</span>(synced_events<span class="sc">$</span>period_secs),</span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">frame_state =</span> <span class="fu">case_when</span>(</span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a>      pre_segment                                          <span class="sc">~</span> <span class="st">"pre_segment"</span>,</span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a>      is_event_frame                                       <span class="sc">~</span> <span class="st">"event_moment"</span>,</span>
+<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Clean delivery: disposal → reception or terminal (a shot)</span></span>
+<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a>      prev_state <span class="sc">==</span> <span class="st">"disposal"</span> <span class="sc">&amp;</span></span>
+<span id="cb14-68"><a href="#cb14-68" aria-hidden="true" tabindex="-1"></a>        next_state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"reception"</span>, <span class="st">"terminal"</span>)         <span class="sc">~</span> <span class="st">"in_flight"</span>,</span>
+<span id="cb14-69"><a href="#cb14-69" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-70"><a href="#cb14-70" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Disposal didn't cleanly arrive (intercepted, spoiled, fumbled)</span></span>
+<span id="cb14-71"><a href="#cb14-71" aria-hidden="true" tabindex="-1"></a>      prev_state <span class="sc">==</span> <span class="st">"disposal"</span>                             <span class="sc">~</span> <span class="st">"in_dispute"</span>,</span>
+<span id="cb14-72"><a href="#cb14-72" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-73"><a href="#cb14-73" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Carrier has the ball after a reception</span></span>
+<span id="cb14-74"><a href="#cb14-74" aria-hidden="true" tabindex="-1"></a>      prev_state <span class="sc">==</span> <span class="st">"reception"</span>                            <span class="sc">~</span> <span class="st">"in_possession"</span>,</span>
+<span id="cb14-75"><a href="#cb14-75" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-76"><a href="#cb14-76" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Stoppage in progress → contested until next event</span></span>
+<span id="cb14-77"><a href="#cb14-77" aria-hidden="true" tabindex="-1"></a>      prev_state <span class="sc">==</span> <span class="st">"stoppage"</span>                             <span class="sc">~</span> <span class="st">"in_dispute"</span>,</span>
+<span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-79"><a href="#cb14-79" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Contested moment (spoil, dropped mark) → loose ball</span></span>
+<span id="cb14-80"><a href="#cb14-80" aria-hidden="true" tabindex="-1"></a>      prev_state <span class="sc">==</span> <span class="st">"contested"</span>                            <span class="sc">~</span> <span class="st">"in_dispute"</span>,</span>
+<span id="cb14-81"><a href="#cb14-81" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-82"><a href="#cb14-82" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Out of play after a goal/behind/oob until next stoppage</span></span>
+<span id="cb14-83"><a href="#cb14-83" aria-hidden="true" tabindex="-1"></a>      prev_state <span class="sc">==</span> <span class="st">"terminal"</span>                             <span class="sc">~</span> <span class="st">"out_of_play"</span>,</span>
+<span id="cb14-84"><a href="#cb14-84" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-85"><a href="#cb14-85" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                                                 <span class="sc">~</span> <span class="st">"unknown"</span></span>
+<span id="cb14-86"><a href="#cb14-86" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-87"><a href="#cb14-87" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-88"><a href="#cb14-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-89"><a href="#cb14-89" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-90"><a href="#cb14-90" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 8: BALL POSITION AND CARRIER PER FRAME</span></span>
+<span id="cb14-91"><a href="#cb14-91" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-92"><a href="#cb14-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-93"><a href="#cb14-93" aria-hidden="true" tabindex="-1"></a>ball <span class="ot">&lt;-</span> ball <span class="sc">%&gt;%</span></span>
+<span id="cb14-94"><a href="#cb14-94" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-95"><a href="#cb14-95" aria-hidden="true" tabindex="-1"></a>    <span class="at">ball_x =</span> <span class="fu">case_when</span>(</span>
+<span id="cb14-96"><a href="#cb14-96" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">==</span> <span class="st">"event_moment"</span>   <span class="sc">~</span> <span class="fu">as.numeric</span>(ev_x),</span>
+<span id="cb14-97"><a href="#cb14-97" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">==</span> <span class="st">"in_possession"</span>  <span class="sc">~</span> player_track_x,</span>
+<span id="cb14-98"><a href="#cb14-98" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"in_flight"</span>, <span class="st">"in_dispute"</span>) <span class="sc">~</span></span>
+<span id="cb14-99"><a href="#cb14-99" aria-hidden="true" tabindex="-1"></a>        prev_x <span class="sc">+</span> (period_secs <span class="sc">-</span> prev_secs) <span class="sc">/</span></span>
+<span id="cb14-100"><a href="#cb14-100" aria-hidden="true" tabindex="-1"></a>        (next_secs <span class="sc">-</span> prev_secs) <span class="sc">*</span> (next_x <span class="sc">-</span> prev_x),</span>
+<span id="cb14-101"><a href="#cb14-101" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                            <span class="sc">~</span> <span class="cn">NA_real_</span></span>
+<span id="cb14-102"><a href="#cb14-102" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb14-103"><a href="#cb14-103" aria-hidden="true" tabindex="-1"></a>    <span class="at">ball_y =</span> <span class="fu">case_when</span>(</span>
+<span id="cb14-104"><a href="#cb14-104" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">==</span> <span class="st">"event_moment"</span>   <span class="sc">~</span> <span class="fu">as.numeric</span>(ev_y),</span>
+<span id="cb14-105"><a href="#cb14-105" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">==</span> <span class="st">"in_possession"</span>  <span class="sc">~</span> player_track_y,</span>
+<span id="cb14-106"><a href="#cb14-106" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"in_flight"</span>, <span class="st">"in_dispute"</span>) <span class="sc">~</span></span>
+<span id="cb14-107"><a href="#cb14-107" aria-hidden="true" tabindex="-1"></a>        prev_y <span class="sc">+</span> (period_secs <span class="sc">-</span> prev_secs) <span class="sc">/</span></span>
+<span id="cb14-108"><a href="#cb14-108" aria-hidden="true" tabindex="-1"></a>        (next_secs <span class="sc">-</span> prev_secs) <span class="sc">*</span> (next_y <span class="sc">-</span> prev_y),</span>
+<span id="cb14-109"><a href="#cb14-109" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                            <span class="sc">~</span> <span class="cn">NA_real_</span></span>
+<span id="cb14-110"><a href="#cb14-110" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb14-111"><a href="#cb14-111" aria-hidden="true" tabindex="-1"></a>    <span class="at">carrier_id =</span> <span class="fu">case_when</span>(</span>
+<span id="cb14-112"><a href="#cb14-112" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">==</span> <span class="st">"event_moment"</span>   <span class="sc">~</span> ev_player,</span>
+<span id="cb14-113"><a href="#cb14-113" aria-hidden="true" tabindex="-1"></a>      frame_state <span class="sc">==</span> <span class="st">"in_possession"</span>  <span class="sc">~</span> prev_player,</span>
+<span id="cb14-114"><a href="#cb14-114" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                            <span class="sc">~</span> <span class="cn">NA_integer_</span></span>
+<span id="cb14-115"><a href="#cb14-115" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-116"><a href="#cb14-116" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-117"><a href="#cb14-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-118"><a href="#cb14-118" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-119"><a href="#cb14-119" aria-hidden="true" tabindex="-1"></a><span class="co"># STEP 9: TIDY OUTPUT</span></span>
+<span id="cb14-120"><a href="#cb14-120" aria-hidden="true" tabindex="-1"></a><span class="co"># =========================================================================</span></span>
+<span id="cb14-121"><a href="#cb14-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-122"><a href="#cb14-122" aria-hidden="true" tabindex="-1"></a>ball <span class="ot">&lt;-</span> ball <span class="sc">%&gt;%</span></span>
+<span id="cb14-123"><a href="#cb14-123" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(period, period_secs, frame_state,</span>
+<span id="cb14-124"><a href="#cb14-124" aria-hidden="true" tabindex="-1"></a>         ball_x, ball_y, carrier_id, prev_desc)</span>
+<span id="cb14-125"><a href="#cb14-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-126"><a href="#cb14-126" aria-hidden="true" tabindex="-1"></a>ball <span class="sc">%&gt;%</span> <span class="fu">kbl</span>(<span class="at">digits =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span> <span class="fu">kable_styling</span>(<span class="st">"striped"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-striped caption-top table-sm small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">period</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">period_secs</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">frame_state</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">ball_x</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">ball_y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">carrier_id</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">prev_desc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Centre Bounce</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">in_dispute</td>
+<td style="text-align: right;">-0.50</td>
+<td style="text-align: right;">-1.25</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Centre Bounce</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">in_dispute</td>
+<td style="text-align: right;">-1.00</td>
+<td style="text-align: right;">-2.50</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Centre Bounce</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">in_dispute</td>
+<td style="text-align: right;">-1.50</td>
+<td style="text-align: right;">-3.75</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Centre Bounce</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-2.00</td>
+<td style="text-align: right;">-5.00</td>
+<td style="text-align: right;">261323</td>
+<td style="text-align: left;">Ground Kick</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-16.00</td>
+<td style="text-align: right;">-9.00</td>
+<td style="text-align: right;">1002222</td>
+<td style="text-align: left;">Gather</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-17.15</td>
+<td style="text-align: right;">-6.64</td>
+<td style="text-align: right;">1002222</td>
+<td style="text-align: left;">Gather</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-16.00</td>
+<td style="text-align: right;">-6.00</td>
+<td style="text-align: right;">1002222</td>
+<td style="text-align: left;">Handball</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-13.00</td>
+<td style="text-align: right;">6.00</td>
+<td style="text-align: right;">280737</td>
+<td style="text-align: left;">Handball Received</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-21.00</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">280737</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">in_flight</td>
+<td style="text-align: right;">-30.40</td>
+<td style="text-align: right;">6.40</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: left;">in_flight</td>
+<td style="text-align: right;">-39.80</td>
+<td style="text-align: right;">3.80</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">in_flight</td>
+<td style="text-align: right;">-49.20</td>
+<td style="text-align: right;">1.20</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: left;">in_flight</td>
+<td style="text-align: right;">-58.60</td>
+<td style="text-align: right;">-1.40</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-68.00</td>
+<td style="text-align: right;">-4.00</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-66.17</td>
+<td style="text-align: right;">-6.80</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-64.43</td>
+<td style="text-align: right;">-7.09</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-62.75</td>
+<td style="text-align: right;">-7.50</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-61.10</td>
+<td style="text-align: right;">-8.13</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-59.71</td>
+<td style="text-align: right;">-9.03</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-58.00</td>
+<td style="text-align: right;">-9.78</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-57.40</td>
+<td style="text-align: right;">-10.27</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-57.96</td>
+<td style="text-align: right;">-10.60</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-58.40</td>
+<td style="text-align: right;">-10.82</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-58.41</td>
+<td style="text-align: right;">-10.79</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-58.26</td>
+<td style="text-align: right;">-10.61</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-57.71</td>
+<td style="text-align: right;">-10.81</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-57.99</td>
+<td style="text-align: right;">-11.06</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-58.81</td>
+<td style="text-align: right;">-10.74</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-60.10</td>
+<td style="text-align: right;">-10.02</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-61.33</td>
+<td style="text-align: right;">-9.40</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-61.54</td>
+<td style="text-align: right;">-9.30</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-60.21</td>
+<td style="text-align: right;">-9.90</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-58.76</td>
+<td style="text-align: right;">-10.78</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-57.29</td>
+<td style="text-align: right;">-11.55</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-55.85</td>
+<td style="text-align: right;">-12.36</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-54.52</td>
+<td style="text-align: right;">-13.04</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-53.37</td>
+<td style="text-align: right;">-13.50</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-53.58</td>
+<td style="text-align: right;">-13.38</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-53.84</td>
+<td style="text-align: right;">-13.30</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-53.11</td>
+<td style="text-align: right;">-13.50</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-53.03</td>
+<td style="text-align: right;">-13.50</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-53.16</td>
+<td style="text-align: right;">-13.49</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">43</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-54.09</td>
+<td style="text-align: right;">-13.06</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-55.39</td>
+<td style="text-align: right;">-12.43</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-57.16</td>
+<td style="text-align: right;">-11.58</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">46</td>
+<td style="text-align: left;">in_possession</td>
+<td style="text-align: right;">-59.49</td>
+<td style="text-align: right;">-10.34</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Contested Mark</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-61.00</td>
+<td style="text-align: right;">-7.00</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: left;">in_flight</td>
+<td style="text-align: right;">-61.00</td>
+<td style="text-align: right;">-7.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Kick</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: left;">event_moment</td>
+<td style="text-align: right;">-61.00</td>
+<td style="text-align: right;">-7.00</td>
+<td style="text-align: right;">291327</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">62</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">63</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">65</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">66</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">68</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">69</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">75</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">76</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">79</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">81</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">83</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">85</td>
+<td style="text-align: left;">out_of_play</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: left;">Goal</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
