@@ -43,6 +43,7 @@ website:
 format:
   html:
     link-external-newwindow: true
+    include-after-body: external-links.html
     theme:
       light: [cosmo, styles.scss]
       dark: [cosmo, styles-dark.scss]
