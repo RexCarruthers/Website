@@ -10,10 +10,16 @@ website:
     right:
       - text: Home
         href: index.qmd
+      - text: Thesis Presentation
+        href: https://rexcarruthers.github.io/Website/thesis/#/title-slide
       - text: "AFL"
         menu:
-          - text: "Model"
+          - text: "Prediction Model"
             href: http://rexcarruthers.github.io/Website/AFLMod
+          - text: "xScore Cards"
+            href: https://rexcarruthers.github.io/Website/cards/
+          - text: "Contested Space Diagrams"
+            href: https://rexcarruthers.github.io/Website/csd/
           - text: "Brownlow Model"
             href: https://rexcarruthers.github.io/Website/BLModel/
           - text: "2025 Sim Shiny App"
