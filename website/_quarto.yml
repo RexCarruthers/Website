@@ -10,6 +10,8 @@ website:
     right:
       - text: Home
         href: index.qmd
+      - text: Resume
+        href: https://rexcarruthers.github.io/Website/resume/
       - text: Thesis Presentation
         href: https://rexcarruthers.github.io/Website/thesis/#/title-slide
       - text: "AFL"
