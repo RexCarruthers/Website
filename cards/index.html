@@ -52,6 +52,8 @@ html, body { margin: 0; background: var(--page); color: var(--ink); font-family:
 .dock .dk-name .k { font-weight: 500; color: var(--ink2); }
 .dock .dk-xs { font: 400 15px var(--sans); color: var(--ink2); }
 .dock .dk-xs b { font: 700 26px var(--sans); color: var(--ink); }
+.dock .dk-xs0 { font: 400 13.5px var(--sans); color: var(--ink2); }
+.dock .dk-xs0 b { font: 650 16px var(--sans); color: var(--ink2); }
 .dock .dk-meta { font: 13.5px var(--sans); color: var(--ink2); }
 .dock .dk-meta b { color: var(--ink); font-weight: 650; }
 .dock .sw { display: none; }
@@ -82,6 +84,7 @@ html, body { margin: 0; background: var(--page); color: var(--ink); font-family:
 .t-key { font: 700 13px var(--sans); fill: var(--ink); letter-spacing: .4px; }
 .t-pname { font: 600 15px var(--sans); fill: var(--ink); }
 .t-pval { font: 700 15px var(--mono); fill: var(--ink); }
+.t-pval-sub { font-weight: 400; font-size: 0.82em; fill: var(--ink2); }
 .t-srcval { font: 400 12px var(--mono); fill: var(--ink2); }
 .t-keytxt { font: 400 12px var(--sans); fill: var(--ink2); }
 
@@ -167,11 +170,19 @@ html, body { margin: 0; background: var(--page); color: var(--ink); font-family:
 /* desktop: stats left, ring right, fitted to the window height above the controls */
 .wide .page { max-width: none; padding: 8px 12px; }
 .wide #viz { max-height: calc(100vh - var(--ctl-h, 90px)); }
-/* one compact row of controls under the graphic */
-.wide .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; }
+/* one compact row of controls under the graphic: buttons keep their size, the
+   scrubber and the stat picker give way so it fits from 1100 px up */
+.wide .controls { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px; }
 .wide .controls .row { display: contents; }
 .wide .controls .spacer { flex: 0; }
-.wide #scrub { flex: 1 1 200px; }
+.wide .controls .btn, .wide .controls .seg { flex: none; }
+.wide .controls .btn { font-size: 12.5px; padding: 5px 8px; min-height: 30px; }
+.wide .controls .btn.primary { min-width: 70px; }
+.wide .clock { flex: none; min-width: 64px; font-size: 13px; }
+.wide #scrub { flex: 1 1 160px; min-width: 70px; }
+.wide .pick { flex: 0 1 auto; min-width: 0; font-size: 12.5px; white-space: nowrap; }
+.wide .controls .lbl { display: none; }   /* icon-only shot step and theme buttons (title + aria-label keep the meaning) */
+.wide .pick select { min-width: 0; max-width: 175px; font-size: 12.5px; padding: 4px 6px; min-height: 30px; }
 .wide .hint { display: none; }
 /* larger text in the wide layout's left column (the canvas is scaled to ~0.8 on a 1080p screen) */
 .wide .header .t-kicker, .wide .header .t-date { font-size: 18px; }
@@ -231,6 +242,26 @@ html, body { margin: 0; background: var(--page); color: var(--ink); font-family:
 .static .controls, .static .tip { display: none !important; }
 .static .page { padding: 0; }
 .static .card { border-radius: 0; }
+
+/* ?panel=: one part of the card at the window's width and its own height (social
+   images: viz/R/x_kit.R trims the spare background), footer strip below */
+.panel-mode, .panel-mode body { overflow: hidden; background: var(--surface); }
+.panel-mode .page { max-width: none; padding: 0; }
+.panel-mode .card { border-radius: 0; }
+.panel-mode #viz { width: 100%; height: auto; max-height: none; }
+/* the ring's small labels at the phone layout's larger sizes */
+.panel-mode .ring-block .t-ring { font-size: 15px; }
+.panel-mode .ring-block .t-q { font-size: 17px; }
+.panel-mode .ring-block .t-xs { font-size: 13.5px; }
+.panel-mode .ring-block .t-field { font-size: 15px; }   /* larger runs "DOCKERS ATTACK →" into the Q2 label */
+.panel-mode .ring-block .t-live { font-size: 28px; }
+.panel-mode .ring-block .t-call { font-size: 14px; }
+.pstrip { flex: none; display: flex; align-items: center; gap: 18px; margin: 0 36px; padding: 12px 0 16px;
+          border-top: 1.5px solid var(--ink); font: 600 19px var(--sans); color: var(--ink); background: var(--surface); }
+.pstrip img { height: 34px; width: auto; }
+:root[data-theme="dark"] .pstrip img { filter: invert(1); }
+.pstrip .ps-score { font: 700 19px var(--mono); }
+.pstrip .ps-site { margin-left: auto; font: 400 16px var(--mono); color: var(--ink2); }
 
 @media (max-width: 640px) {
   .page { padding: 8px; }
@@ -376,6 +407,20 @@ html, body { overflow-x: clip; }
   .site h1 { font-size: 27px; }
   .site section { padding: 16px 14px; }
 }
+
+/* ?section=: chosen charts alone at the window's width and their own height (social
+   images: viz/R/x_explainers.R trims the spare background) */
+.section-mode, .section-mode body { overflow: hidden; background: var(--surface); }
+.section-mode body > *:not(.xframe) { display: none !important; }
+.xframe { padding: 34px 36px 0; background: var(--surface); color: var(--ink); }
+.xframe h2 { font: 700 36px var(--sans); letter-spacing: -.3px; margin: 0 0 16px; }
+.xbody { display: flex; align-items: flex-start; gap: 44px; padding-bottom: 18px; }
+.xbody > figure, .xbody .charts > figure { flex: 1 1 0; min-width: 0; margin: 0; }
+.xbody > .charts { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; gap: 44px; }
+.xbody figcaption { font: 19px/1.4 var(--sans); margin: 0 0 10px; }
+.xbody svg { display: block; width: 100%; height: auto; }
+.xframe .pstrip { margin: 0; }
+.xbody > figure.narrow { flex: 0 1 960px; margin: 0 auto; }   /* a short, wide chart keeps a sensible size */
 </style>
 </head>
 <body>
@@ -1794,7 +1839,7 @@ f+JCw6IOC1KfAAAAAElFTkSuQmCC" alt="Acatalepsy" width="230" height="118">
         <li><b>Ring:</b> win probability of the team in front, 50% at the inner edge to 100% at the outer, in its colour. Clockwise from 12 o'clock, one quarter per quadrant.</li>
         <li><b>Ticks round the ring:</b> each shot at its time; length and label are its xS. &#9679; goal, &#9675; behind, &times; no score.</li>
         <li><b>Ground:</b> where each shot came from, circle area = xS. Every venue is drawn as Marvel Stadium, true to scale inside 50 m.</li>
-        <li><b>Left panels:</b> score, team xS, inside 50s, the top 5 players on a stat you pick, and how each team's xS was created.</li>
+        <li><b>Left panels:</b> score, team xS (final model and with no player effects), shots, inside 50s, the top 5 players on a stat you pick, and how each team's xS was created.</li>
         <li><b>Interact:</b> press Play or scrub; filter shots to set or open play; hover a shot for the possession chain behind it; <b>Key</b> explains every mark.</li>
       </ul>
     </div>
@@ -1812,7 +1857,7 @@ f+JCw6IOC1KfAAAAAElFTkSuQmCC" alt="Acatalepsy" width="230" height="118">
 
   <section>
     <h2>Expected score (xS) model</h2>
-    <p class="lede">Two logistic stages: does the shot score, then is it a goal; xS = 6 &times; P(goal) + P(behind). Inputs: location (distance, angle and a location surface, separately for set shots and open play), shot type, the action before the shot, time since the previous possession, ball speed, game state, weather, roof, position and venue. Each player gets correlated set-shot and open-play finishing effects (Bayesian, partially pooled); the cards use an average finisher.</p>
+    <p class="lede">Two logistic stages: does the shot score, then is it a goal; xS = 6 &times; P(goal) + P(behind). Inputs: location (distance, angle and a location surface, separately for set shots and open play), shot type, the action before the shot, time since the previous possession, ball speed, game state, weather, roof, position and venue. Each player gets correlated set-shot and open-play finishing effects (Bayesian, partially pooled). The cards show the final model, which includes the kicker's finishing, alongside the same shots for an average finisher (no player effects).</p>
     <div class="charts" id="heat"></div>
   </section>
 
@@ -1851,7 +1896,9 @@ f+JCw6IOC1KfAAAAAElFTkSuQmCC" alt="Acatalepsy" width="230" height="118">
   "use strict";
   const D = JSON.parse(document.getElementById("site-data").textContent);
   const root = document.documentElement;
-  const cols = (o) => { const k = Object.keys(o), n = o[k[0]] ? o[k[0]].length : 0;
+  const params = new URLSearchParams(location.search);
+  if (["light", "dark"].includes(params.get("theme"))) root.dataset.theme = params.get("theme");   // before any chart reads colours
+  const cols =(o) => { const k = Object.keys(o), n = o[k[0]] ? o[k[0]].length : 0;
     return Array.from({ length: n }, (_, i) => Object.fromEntries(k.map((c) => [c, o[c][i]]))); };
   const css = (v) => getComputedStyle(root).getPropertyValue(v).trim();
   const darkNow = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
@@ -2139,7 +2186,7 @@ f+JCw6IOC1KfAAAAAElFTkSuQmCC" alt="Acatalepsy" width="230" height="118">
 
   // ---- WP: what a lead is worth --------------------------------------------
   (() => {
-    const L = D.lead_curves, W = 640, H = 300, m = { t: 12, r: 190, b: 34, l: 44 };
+    const L = D.lead_curves, W = 640, H = 300, m = { t: 12, r: 212, b: 34, l: 44 };   // r: room for the longest end label
     const x = d3.scaleLinear([0, 80], [m.l, W - m.r]), y = d3.scaleLinear([0.3, 1], [H - m.b, m.t]);
     const svg = d3.select("#wp-curves").append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("role", "img")
       .attr("aria-label", "Home win probability over the match for different leads");
@@ -2339,7 +2386,9 @@ f+JCw6IOC1KfAAAAAElFTkSuQmCC" alt="Acatalepsy" width="230" height="118">
 
   // ---- theme toggle (shared preference with the match pages) ----------------------
   const btn = document.getElementById("theme");
-  try { const s = localStorage.getItem("matchviz-theme"); if (s === "dark" || s === "light") root.dataset.theme = s; } catch (e) { /* storage blocked */ }
+  if (!params.get("theme")) {
+    try { const s = localStorage.getItem("matchviz-theme"); if (s === "dark" || s === "light") root.dataset.theme = s; } catch (e) { /* storage blocked */ }
+  }
   const sync = () => { const d = darkNow(); btn.textContent = d ? "☀ Light" : "☾ Dark"; btn.setAttribute("aria-label", d ? "Switch to light mode" : "Switch to dark mode"); cardColours(); replay.colours(); };
   btn.addEventListener("click", () => {
     root.dataset.theme = darkNow() ? "light" : "dark";
@@ -2348,6 +2397,38 @@ f+JCw6IOC1KfAAAAAElFTkSuQmCC" alt="Acatalepsy" width="230" height="118">
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", sync);
   sync();
+
+  // ---- ?section=<id>[,<id>...]: those charts alone, filling the window ----------
+  // For social images (viz/R/x_explainers.R). Each id is a chart container; its
+  // figure (or the container itself) moves into a full-window frame with the
+  // section's heading (or ?title=) above and a logo / ?site= strip below.
+  const ids = (params.get("section") || "").split(",").filter((id) => document.getElementById(id));
+  if (ids.length) {
+    const el0 = document.getElementById(ids[0]);
+    const frame = document.createElement("div");
+    frame.className = "xframe";
+    const h = document.createElement("h2");
+    h.textContent = params.get("title") || (el0.closest("section") && el0.closest("section").querySelector("h2").textContent) || "";
+    const body = document.createElement("div");
+    body.className = "xbody";
+    ids.forEach((id) => { const el = document.getElementById(id); body.appendChild(el.closest("figure") || el); });
+    // a caption that opens with the heading's own words ("<b>What a lead is worth</b> · ...") keeps only the rest
+    body.querySelectorAll("figcaption").forEach((fc) => {
+      const b = fc.querySelector("b");
+      if (!b || b.textContent.trim() !== h.textContent.trim()) return;
+      const rest = b.nextSibling;
+      b.remove();
+      if (rest && rest.nodeType === 3) rest.textContent = rest.textContent.replace(/^\s*·\s*/, "").replace(/^./, (c) => c.toUpperCase());
+    });
+    const logo = document.querySelector("img.brand");
+    const strip = document.createElement("div");
+    strip.className = "pstrip";   // same footer strip as the match-card panels (match.css)
+    strip.innerHTML = (logo ? `<img src="${logo.getAttribute("src")}" alt="">` : "") +
+      `<span class="ps-title">${D.season} AFL finals · match cards</span><span class="ps-site">${params.get("site") || ""}</span>`;
+    frame.append(h, body, strip);
+    document.body.appendChild(frame);
+    root.classList.add("section-mode");
+  }
 })();
 </script>
 </body>
